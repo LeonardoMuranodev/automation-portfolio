@@ -1,0 +1,170 @@
+{
+  "name": "mcp server calendar + gmail",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "mail-calendar"
+      },
+      "type": "@n8n/n8n-nodes-langchain.mcpTrigger",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "a2e82c6e-bb1e-4dd9-b1d1-0e61fa8672cd",
+      "name": "MCP Server Trigger",
+      "webhookId": "5d2452bb-41f9-4478-988c-bd77f5e8fc21"
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "claseiatecno@gmail.com",
+          "mode": "list",
+          "cachedResultName": "claseiatecno@gmail.com"
+        },
+        "start": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Start', `A que hora empieza el evento. Es obligatorio`, 'string') }}",
+        "end": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('End', `A que hora termina el evento, puede ser aproximado. Es obligatorio`, 'string') }}",
+        "useDefaultReminders": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Use_Default_Reminders', ``, 'boolean') }}",
+        "additionalFields": {
+          "attendees": [],
+          "description": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Description', `Descripcion del evento, es obligatoria`, 'string') }}",
+          "summary": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Summary', `Titulo del evento, es obligatorio`, 'string') }}"
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        16,
+        256
+      ],
+      "id": "0a0bbdec-505b-4388-9a5d-ad4dd2a409e8",
+      "name": "crear-evento"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('To', `El correo electrónico completo del destinatario. Es obligatorio.`, 'string') }}",
+        "subject": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Subject', `El asunto breve y conciso del correo electronico Es obligatorio.`, 'string') }}",
+        "message": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Message', `El cuerpo completo y detallado del mensaje que se debe enviar.`, 'string') }}",
+        "options": {
+          "appendAttribution": false,
+          "bccList": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('BCC', ``, 'string') }}",
+          "ccList": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('CC', ``, 'string') }}",
+          "senderName": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Sender_Name', ``, 'string') }}",
+          "replyTo": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Send_Replies_To', ``, 'string') }}",
+          "replyToSenderOnly": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Reply_to_Sender_Only', ``, 'boolean') }}"
+        }
+      },
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.1,
+      "position": [
+        -112,
+        256
+      ],
+      "id": "bdd43ecf-9dc8-4045-a347-6b28d927f07f",
+      "name": "enviar-mail",
+      "webhookId": "111455c8-a7d8-49a2-9c54-8cfc07cfac9e"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "calendar": {
+          "__rl": true,
+          "value": "claseiatecno@gmail.com",
+          "mode": "list",
+          "cachedResultName": "claseiatecno@gmail.com"
+        },
+        "returnAll": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Return_All', ``, 'boolean') }}",
+        "timeMin": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('After', ``, 'string') }}",
+        "timeMax": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Before', ``, 'string') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        400,
+        256
+      ],
+      "id": "106cc024-68e6-4074-aa05-eae80eb3266e",
+      "name": "obtener-eventos"
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "calendar": {
+          "__rl": true,
+          "value": "claseiatecno@gmail.com",
+          "mode": "list",
+          "cachedResultName": "claseiatecno@gmail.com"
+        },
+        "eventId": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Event_ID', ``, 'string') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        272,
+        256
+      ],
+      "id": "b960a24f-e80d-4918-94c1-e7514fe7d1e2",
+      "name": "eliminar-evento"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "crear-evento": {
+      "ai_tool": [
+        [
+          {
+            "node": "MCP Server Trigger",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "enviar-mail": {
+      "ai_tool": [
+        [
+          {
+            "node": "MCP Server Trigger",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "obtener-eventos": {
+      "ai_tool": [
+        [
+          {
+            "node": "MCP Server Trigger",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "eliminar-evento": {
+      "ai_tool": [
+        [
+          {
+            "node": "MCP Server Trigger",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "e96ef616-d691-440d-9fc6-3f4e37962cc2",
+  "meta": {
+    "instanceId": "dcc74d053526a97413ae651f954290cf4af9e7ccb6218b502650d605743b4dfc"
+  },
+  "id": "NztSUB8HYpCvrsFn",
+  "tags": []
+}

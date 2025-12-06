@@ -1,0 +1,924 @@
+{
+  "name": "Billing AFIP",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Obtener autorizacion\n\nObtiene el Token y Sign que es requerido por AFIP para todas las operaciones",
+        "height": 384,
+        "width": 288
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        816,
+        736
+      ],
+      "id": "8e9250b0-b8ea-47cd-995b-8ca918ac9e24",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## Obtener ultimo número de Factura\n\nObtiene el ultimo numero de la factura de ese tipo, ya que la AFIP es estricta y si salteas o repetis, tira error",
+        "height": 384,
+        "width": 320
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1264,
+        736
+      ],
+      "id": "905b94f5-f90d-4f2c-b959-d196de61ea4d",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://app.afipsdk.com/api/v1/afip/requests",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"environment\": \"dev\",\n  \"method\": \"FECompUltimoAutorizado\",\n  \"wsid\": \"wsfe\",\n  \"params\": {\n    \"Auth\": {\n      \"Token\": \"{{ $('obtener_autorizacion').item.json.token }}\",\n      \"Sign\": \"{{ $('obtener_autorizacion').item.json.sign }}\",\n      \"Cuit\": {{ $('Obtener factura').item.json.cuit_cliente }}\n    },\n    \"PtoVta\": {{ $('Obtener factura').item.json.punto_venta }},\n    \"CbteTipo\": {{$('Obtener factura').item.json.tipo_comprobante }}\n  }\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1376,
+        944
+      ],
+      "id": "4a67d6d5-e483-4fc2-9c4d-4340be9fe196",
+      "name": "obtener_ultimo_nro_tipo_factura"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://app.afipsdk.com/api/v1/afip/requests",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"environment\": \"dev\",\n  \"method\": \"FECAESolicitar\",\n  \"wsid\": \"wsfe\",\n  \"params\": {\n    \"Auth\": {\n      \"Token\": \"{{ $('obtener_autorizacion').item.json.token }}\",\n      \"Sign\": \"{{ $('obtener_autorizacion').item.json.sign }}\",\n      \"Cuit\": \"20409378472\"\n    },\n    \"FeCAEReq\": {\n      \"FeCabReq\": { \"CantReg\": 1, \"PtoVta\": 1, \"CbteTipo\": 11 },\n      \"FeDetReq\": {\n        \"FECAEDetRequest\": {\n          \"Concepto\": {{ $('Obtener factura').item.json.concepto }},\n          \"DocTipo\": 80,\n          \"DocNro\": {{ $('Obtener factura').item.json.cuit_cliente }},\n          \"CbteDesde\": {{ $('obtener_ultimo_nro_tipo_factura').item.json.FECompUltimoAutorizadoResult.CbteNro + 1 }},\n          \"CbteHasta\": {{ $('obtener_ultimo_nro_tipo_factura').item.json.FECompUltimoAutorizadoResult.CbteNro + 1 }},\n          \"CbteFch\": {{ new Date(Date.now() - ((new Date()).getTimezoneOffset()*60000)).toISOString().split('T')[0].replace(/-/g,'') }},\n          \"ImpTotal\": {{ $json.total }},\n          \"ImpTotConc\": 0,\n          \"ImpNeto\": {{ $json.subtotal }},\n          \"ImpOpEx\": 0,\n          \"ImpIVA\": {{ $json['total-iva'] }},\n          \"ImpTrib\": 0,\n          \"MonId\": \"PES\",\n          \"MonCotiz\": 1,\n          \"CondicionIVAReceptorId\": {{ $('Obtener factura').item.json.condicion_iva }}\n        }\n      }\n    }\n  }\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2304,
+        944
+      ],
+      "id": "1d18154d-6d30-44de-9cb4-518ade61e1be",
+      "name": "crear_factura_electronica"
+    },
+    {
+      "parameters": {
+        "jsCode": "function toBase64(str) {\n  let chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';\n  let output = '';\n  let i = 0;\n  while (i < str.length) {\n    let c1 = str.charCodeAt(i++);\n    let c2 = str.charCodeAt(i++);\n    let c3 = str.charCodeAt(i++);\n    \n    let e1 = c1 >> 2;\n    let e2 = ((c1 & 3) << 4) | (c2 >> 4);\n    let e3 = ((c2 & 15) << 2) | (c3 >> 6);\n    let e4 = c3 & 63;\n\n    if (isNaN(c2)) e3 = e4 = 64;\n    else if (isNaN(c3)) e4 = 64;\n\n    output += chars.charAt(e1) + chars.charAt(e2) + chars.charAt(e3) + chars.charAt(e4);\n  }\n  return output;\n}\n\nconst res = $input.first().json;\nconst det = res.FECAESolicitarResult.FeDetResp.FECAEDetResponse[0];\nconst cab = res.FECAESolicitarResult.FeCabResp;\nconst QRCodeData = {\n  ver: 1,\n  fecha: String(det.CbteFch).replace(/(\\d{4})(\\d{2})(\\d{2})/, '$1-$2-$3'),\n  cuit: Number(20409378472),\n  ptoVta: Number(cab.PtoVta),\n  tipoCmp: Number(cab.CbteTipo),\n  nroCmp: Number(det.CbteDesde),\n  importe: $('diferetes-totales').first().json.total,\n  moneda: 'ARS',\n  ctz: 1,\n  tipoDocRec: 80,\n  nroDocRec: 33693450239,\n  tipoCodAut: 'E',\n  codAut: Number(det.CAE || 12345678901234)\n};\nconst QRCodeText = 'https://www.afip.gob.ar/fe/qr/?p=' + toBase64(JSON.stringify(QRCodeData))\n\nreturn [{ qr_code_text: QRCodeText }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        1472
+      ],
+      "id": "f495dbd5-f12e-477e-8840-93693dba3783",
+      "name": "QR-factura"
+    },
+    {
+      "parameters": {
+        "html": "<!DOCTYPE html>\n<html lang=\"es\">\n<head>\n  <meta charset=\"UTF-8\">\n  <title>Factura</title>\n  <style>\n    body {\n      font-family: Arial, sans-serif;\n      margin: 0;\n      padding: 20px;\n      color: #333;\n    }\n\n    header {\n      text-align: center;\n      margin-bottom: 30px;\n    }\n\n    h1 {\n      margin: 0;\n      font-size: 24px;\n    }\n\n    .company-info, .client-info {\n      width: 100%;\n      margin-bottom: 20px;\n    }\n\n    .company-info td, .client-info td {\n      padding: 5px;\n    }\n\n    table {\n      width: 100%;\n      border-collapse: collapse;\n      margin-bottom: 20px;\n    }\n\n    table, th, td {\n      border: 1px solid #aaa;\n    }\n\n    th, td {\n      padding: 10px;\n      text-align: left;\n    }\n\n    tfoot td {\n      font-weight: bold;\n    }\n\n    .qr-code {\n      text-align: center;\n      margin-top: 20px;\n    }\n\n    .qr-code img {\n      width: 350px;\n      height: 350px;\n    }\n  </style>\n</head>\n<body>\n\n<header>\n  <h1>Factura Electrónica</h1>\n</header>\n\n<table class=\"company-info\">\n  <tr>\n    <td><strong>Empresa:</strong> Empresa123</td>\n    <td><strong>CUIT:</strong> 20409378472</td>\n  </tr>\n  <tr>\n    <td><strong>Dirección:</strong> AV Siempre Viva</td>\n    <td><strong>Teléfono:</strong> 11 1234-5678</td>\n  </tr>\n</table>\n\n<table class=\"client-info\">\n  <tr>\n    <td><strong>Cliente:</strong> {{ $('Obtener factura').item.json.razon_social }}</td>\n    <td><strong>CUIT/DNI:</strong> {{ $('Obtener factura').item.json.cuit_cliente }}</td>\n  </tr>\n  <tr>\n    <td><strong>Dirección:</strong> {{ $('Obtener factura').item.json[\"cliente-dir\"] }}</td>\n    <td><strong>Fecha:</strong>{{ $('Obtener factura').item.json.fecha }}</td>\n  </tr>\n</table>\n\n<table>\n  <thead>\n    <tr>\n      <th>Descripción</th>\n      <th>Cantidad</th>\n      <th>Precio Unitario</th>\n      <th>Total</th>\n    </tr>\n  </thead>\n  <tbody>\n    <tr>\n      <td>{{ $json.productos[0].descripcion }}</td>\n      <td>{{ $json.productos[0].unidades }}</td>\n      <td>{{ $json.productos[0].precio_unitario }}</td>\n      <td>{{ $json.productos[0].precio_unitario*$json.productos[0].unidades }}</td>\n    </tr>\n     <tr>\n      <td>{{ $json.productos[1].descripcion }}</td>\n      <td>{{ $json.productos[1].unidades }}</td>\n      <td>{{ $json.productos[1].precio_unitario }}</td>\n      <td>{{ $json.productos[1].precio_unitario*$json.productos[0].unidades }}</td>\n    </tr>\n  </tbody>\n  <tfoot>\n    <tr>\n      <td colspan=\"3\">Subtotal</td>\n      <td>{{ $('diferetes-totales').item.json.subtotal }}</td>\n    </tr>\n    <tr>\n      <td colspan=\"3\">IVA Total</td>\n      <td>{{ $('diferetes-totales').item.json[\"total-iva\"] }}</td>\n    </tr>\n    <tr>\n      <td colspan=\"3\">Total</td>\n      <td>{{ $('diferetes-totales').item.json.total }}</td>\n    </tr>\n  </tfoot>\n</table>\n\n<div class=\"qr-code\">\n  <p>Escanea el QR para verificar la factura:</p>\n  <img src=\"https://api.qrserver.com/v1/create-qr-code/?size=350x350&data={{ $('QR-factura').item.json.qr_code_text }}\" alt=\"QR Code\">\n\n</div>\n\n</body>\n</html>"
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        1328,
+        1488
+      ],
+      "id": "2e7dd9db-03c3-4bc1-a640-56e1dfabda48",
+      "name": "HTML"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "be6a51a0-4e9c-471e-a4de-eced8199e802",
+              "name": "total",
+              "value": "={{ (($('Obtener factura').item.json['IVA (Porcentaje)']).toNumber() + 1) * $('Obtener factura').item.json.importe}}",
+              "type": "number"
+            },
+            {
+              "id": "29a41320-66c8-4c68-810c-bf8808699846",
+              "name": "total-iva",
+              "value": "={{ $('Obtener factura').item.json.importe*$('Obtener factura').item.json[\"IVA (Porcentaje)\"]  }}",
+              "type": "number"
+            },
+            {
+              "id": "cc41ab96-33e8-4e0f-9e2b-bc0799996966",
+              "name": "subtotal",
+              "value": "={{ $('Obtener factura').item.json.importe  }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1856,
+        944
+      ],
+      "id": "467a8cbe-dfa3-4cfc-9839-f0531e5685e4",
+      "name": "diferetes-totales"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://app.afipsdk.com/api/v1/pdfs",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"html\": {{ JSON.stringify($json.html) }},\n  \"file_name\": \"Factura\",\n  \"options\": { \"width\": 8, \"marginLeft\": 0.4, \"marginRight\": 0.4, \"marginTop\": 0.4, \"marginBottom\": 0.4 }\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1824,
+        1488
+      ],
+      "id": "12983c75-8250-4c6a-923f-b92639cb1c68",
+      "name": "crear-pdf-factura"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.file }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": false,
+              "neverError": false,
+              "responseFormat": "file",
+              "outputPropertyName": "data"
+            }
+          },
+          "pagination": {}
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2320,
+        1488
+      ],
+      "id": "1cc911c0-1177-41fc-9fe9-3a87e4c4bcb4",
+      "name": "descargar-pdf"
+    },
+    {
+      "parameters": {
+        "sendTo": "leomellimurano@gmail.com",
+        "subject": "=Factura de  {{ $('Obtener factura').item.json.razon_social }}",
+        "message": "Archivo adjunto, la factura de {{ $('Limit').item.json.razon_social }}",
+        "options": {
+          "appendAttribution": false,
+          "attachmentsUi": {
+            "attachmentsBinary": [
+              {}
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        224,
+        1968
+      ],
+      "id": "73551b87-9515-4924-b484-66b715a0df2a",
+      "name": "enivar-factura",
+      "webhookId": "486adcf6-6e5b-45a0-af3c-5a1ff59a8314"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        224,
+        944
+      ],
+      "id": "055bb93d-0c06-478d-8b64-3cf0a0acf0fb",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1q6On-bMOemiNuD3NadzlTgvS_DRnAIp575rXgIVdl00",
+          "mode": "list",
+          "cachedResultName": "prueba-afip-demo",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1q6On-bMOemiNuD3NadzlTgvS_DRnAIp575rXgIVdl00/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "datos-factura",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1q6On-bMOemiNuD3NadzlTgvS_DRnAIp575rXgIVdl00/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Estado",
+              "lookupValue": "No enviado"
+            },
+            {
+              "lookupColumn": "fecha",
+              "lookupValue": "={{ $now.format('dd/LL/yyyy')  }}"
+            }
+          ]
+        },
+        "options": {
+          "returnFirstMatch": true
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        448,
+        944
+      ],
+      "id": "e9dcc7b7-ae68-43ba-be14-bb0901a28a01",
+      "name": "Obtener factura"
+    },
+    {
+      "parameters": {
+        "content": "## Obtenemos un campo para enviar\n\nObtenemos un campo que no haya sido enviado, y además la fecha de envio sea hoy",
+        "height": 384,
+        "width": 544
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        112,
+        736
+      ],
+      "id": "6c9b0a6a-f515-4582-a69e-2c8130a45628",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "## Obtenemos los diferentes totales\n\nObtenemos el total neto, el total iva, y el total completo que es la suma de los dos.",
+        "height": 384,
+        "width": 320
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1728,
+        736
+      ],
+      "id": "a3d3700b-6369-4897-9d7a-0f470393cea2",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "## Creamos la factura\n\nCreamos la factura digital con los campos que nos pide la AFIP",
+        "height": 384,
+        "width": 320
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2192,
+        736
+      ],
+      "id": "58c6f628-56f1-49f0-b416-3b3d4c9da86a",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "content": "## Creamos el QR de la factura\n\nCada factura de AFIP debe tener un QR asociado. Para comporbar que funcione, pegar la URL en el navegador y tiene que verse todos los datos completados",
+        "height": 384,
+        "width": 320
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        112,
+        1264
+      ],
+      "id": "6bdaaddc-2d69-4bfe-bb85-c0abe29db259",
+      "name": "Sticky Note5"
+    },
+    {
+      "parameters": {
+        "content": "## Creamos el HTML de la factura + QR\n\nCreamos la factura con una plantilla HTML de la factura con el QR",
+        "height": 384,
+        "width": 464
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1136,
+        1280
+      ],
+      "id": "59eb1906-a063-425c-bb52-226a96336dab",
+      "name": "Sticky Note6"
+    },
+    {
+      "parameters": {
+        "content": "## Creamos el PDF de la factura\n\nA partir del HTML de la factura completa, creamos el PDF de la misma",
+        "height": 384,
+        "width": 304
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1744,
+        1280
+      ],
+      "id": "0cd4293e-b57e-4e0a-a44d-5a7156d2e48b",
+      "name": "Sticky Note7"
+    },
+    {
+      "parameters": {
+        "content": "## Descargamos el PDF de la factura\n\nDescargamos el pdf anterior",
+        "height": 384,
+        "width": 304
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2208,
+        1280
+      ],
+      "id": "03261cf2-1b8f-4095-a6af-d34bd8e68eaf",
+      "name": "Sticky Note8"
+    },
+    {
+      "parameters": {
+        "content": "## Enviamos el PDF por mail\n\nEnviamos el PDF por mail como archivo adjunto",
+        "height": 384,
+        "width": 304
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        112,
+        1760
+      ],
+      "id": "78321421-8a50-4dce-a8ed-0f8f0da4ff8d",
+      "name": "Sticky Note9"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1q6On-bMOemiNuD3NadzlTgvS_DRnAIp575rXgIVdl00",
+          "mode": "list",
+          "cachedResultName": "prueba-afip-demo",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1q6On-bMOemiNuD3NadzlTgvS_DRnAIp575rXgIVdl00/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1617378869,
+          "mode": "list",
+          "cachedResultName": "productos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1q6On-bMOemiNuD3NadzlTgvS_DRnAIp575rXgIVdl00/edit#gid=1617378869"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "codigo_factura ",
+              "lookupValue": "={{ $('Obtener factura').item.json.cod_factura }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        640,
+        1488
+      ],
+      "id": "e3b8db08-b37e-43b3-855d-5b60e3646923",
+      "name": "Obtener productos"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "productos",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        848,
+        1488
+      ],
+      "id": "beb4defe-81cd-43e4-bb33-86ef86b6c5de",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "content": "## Obtenemos los productos de la factura\n\nObtenemos los porductos de la factura a traves del cod_factura",
+        "height": 384,
+        "width": 464
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        560,
+        1280
+      ],
+      "id": "b53072dc-9a95-48ae-b77c-65f5fca930c3",
+      "name": "Sticky Note10"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1q6On-bMOemiNuD3NadzlTgvS_DRnAIp575rXgIVdl00",
+          "mode": "list",
+          "cachedResultName": "prueba-afip-demo",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1q6On-bMOemiNuD3NadzlTgvS_DRnAIp575rXgIVdl00/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "datos-factura",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1q6On-bMOemiNuD3NadzlTgvS_DRnAIp575rXgIVdl00/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Estado": "Enviado",
+            "cod_factura": "={{ $('Obtener factura').item.json.cod_factura }}"
+          },
+          "matchingColumns": [
+            "cod_factura"
+          ],
+          "schema": [
+            {
+              "id": "cod_factura",
+              "displayName": "cod_factura",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "razon_social",
+              "displayName": "razon_social",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "cuit_cliente",
+              "displayName": "cuit_cliente",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "importe",
+              "displayName": "importe",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "condicion_iva",
+              "displayName": "condicion_iva",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "tipo_comprobante",
+              "displayName": "tipo_comprobante",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "IVA (Porcentaje)",
+              "displayName": "IVA (Porcentaje)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "punto_venta",
+              "displayName": "punto_venta",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "cliente-dir",
+              "displayName": "cliente-dir",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "fecha",
+              "displayName": "fecha",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "fecha_vencimiento",
+              "displayName": "fecha_vencimiento",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "concepto",
+              "displayName": "concepto",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "facturacion_periodo_desde",
+              "displayName": "facturacion_periodo_desde",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "facturacion_periodo_hasta",
+              "displayName": "facturacion_periodo_hasta",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "medio_de_pago",
+              "displayName": "medio_de_pago",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Estado",
+              "displayName": "Estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        800,
+        1968
+      ],
+      "id": "9c3acf24-435e-4068-b149-2160623d637e",
+      "name": "Actualizar estado a Enviado"
+    },
+    {
+      "parameters": {
+        "content": "## Actualizacion de Estado\n\nEnviamos el PDF por mail como archivo adjunto",
+        "height": 384,
+        "width": 352
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        640,
+        1760
+      ],
+      "id": "3a07c9e9-ba0d-419c-99d2-f7e04e116b38",
+      "name": "Sticky Note11"
+    },
+    {
+      "parameters": {
+        "content": "",
+        "height": 1568,
+        "width": 2560,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        80,
+        624
+      ],
+      "id": "de542bf5-5e8c-423b-8c66-5c2fd3249054",
+      "name": "Sticky Note12"
+    },
+    {
+      "parameters": {
+        "content": "## Componentes del workflow\n\n1. Schedule Trigger\n2. Google Sheets: Get row(s) in sheet\n3. HTTP Request (obtener_autorizacion)\n4. HTTP Request (obtener_ult_nro_tipo_comprobante)\n5. Edit Fields (Set)\n6. HTTP Request (Crear_factura_electronica)\n7. Code\n8. Google Sheets: Get row(s) in sheet\n9. Aggregate\n10. HTML: generate HTML template\n11. HTTP Request: crear_pdf_factura\n12. HTTP Request descargar_pdf\n13. Gmail: Send a message\n14. Google Sheets: Update a row",
+        "height": 544,
+        "width": 560,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        80,
+        32
+      ],
+      "id": "9997867a-e12d-475c-9105-55955e6a3021",
+      "name": "Sticky Note13"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://app.afipsdk.com/api/v1/afip/auth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"environment\": \"dev\",\n  \"tax_id\": {{ $json.cuit_cliente }},\n  \"wsid\": \"wsfe\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        912,
+        944
+      ],
+      "id": "8987f3bb-ffb2-43eb-af0c-12686a6408a8",
+      "name": "obtener_autorizacion"
+    },
+    {
+      "parameters": {
+        "content": "## Explicacion del workflow\n\nCada 5 minutos lee un campo de una factura que no haya sido enviado y la fecha para hacerlo sea hoy. \n\nLuego de eso obtiene la autorizacion de AFIP y el ultimo numero de la factura del tipo de comprobante que se va a hacer la factura\n\nLuego ordenamos los diferentes totales\n\nCreamos la factura electronica con los datos dinamicos que obtuvimos del sheet, usando la actuaizacion que obtuvimos anteriormente y el numero de la ultima factura\n\nLuego con código, creamos el QR de la factura\n\nDespues obtenemos de un sheet los productos de esa factura\n\nCon los datos anteriores hacemos una plantilla de HTML para hacer la factura. La cual despues descargamos\n\nPor ultimo la mandamos por mail y actualizamos el estado a Enviado\n\nIMPORTANTE: Este flujo es con el estado de DESARROLLO de AFIP, para hacerlo a modo PRODUCCION el flujo es ligeramente diferente",
+        "height": 544,
+        "width": 1136,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        768,
+        32
+      ],
+      "id": "ed607fac-6108-4873-831b-7a161b1f2f23",
+      "name": "Sticky Note14"
+    },
+    {
+      "parameters": {
+        "content": "## Recursos utilizados del workflow\n\nHoja de Google Sheets\n- [prueba-afip-demo](https://docs.google.com/spreadsheets/d/1q6On-bMOemiNuD3NadzlTgvS_DRnAIp575rXgIVdl00/edit?usp=sharing)\n\n\nAPI de AFIP SDK documentación:\n\n- [AFIP Documentacion](https://afipsdk.com/docs/automations/integrations/n8n/)",
+        "height": 544,
+        "width": 640,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2000,
+        32
+      ],
+      "id": "e81e47a3-3657-4297-8505-08e0163eee5a",
+      "name": "Sticky Note15"
+    },
+    {
+      "parameters": {
+        "content": "",
+        "height": 2240,
+        "width": 2704,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "69baeb1c-db01-48c0-81f5-daa7be3dda79",
+      "name": "Sticky Note16"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "obtener_ultimo_nro_tipo_factura": {
+      "main": [
+        [
+          {
+            "node": "diferetes-totales",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "crear_factura_electronica": {
+      "main": [
+        [
+          {
+            "node": "QR-factura",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "QR-factura": {
+      "main": [
+        [
+          {
+            "node": "Obtener productos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "diferetes-totales": {
+      "main": [
+        [
+          {
+            "node": "crear_factura_electronica",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML": {
+      "main": [
+        [
+          {
+            "node": "crear-pdf-factura",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "crear-pdf-factura": {
+      "main": [
+        [
+          {
+            "node": "descargar-pdf",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "descargar-pdf": {
+      "main": [
+        [
+          {
+            "node": "enivar-factura",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Obtener factura",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtener factura": {
+      "main": [
+        [
+          {
+            "node": "obtener_autorizacion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtener productos": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "enivar-factura": {
+      "main": [
+        [
+          {
+            "node": "Actualizar estado a Enviado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "obtener_autorizacion": {
+      "main": [
+        [
+          {
+            "node": "obtener_ultimo_nro_tipo_factura",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "21b554b6-a63d-4578-9bc6-162b1cbd1b0f",
+  "meta": {
+    "instanceId": "dcc74d053526a97413ae651f954290cf4af9e7ccb6218b502650d605743b4dfc"
+  },
+  "id": "JR2sz4og8TPnqsMn",
+  "tags": []
+}

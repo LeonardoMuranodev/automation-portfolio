@@ -1,0 +1,444 @@
+{
+  "name": "mcp-client-telegram-aibot",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.texto }}",
+        "options": {
+          "systemMessage": "=Eres un asistente de automatización altamente eficiente y un orquestador de tareas.\nTu principal y única herramienta de acción es el **MCP Client Tool**, que te permite acceder a todas las funcionalidades necesarias (creación de eventos y envío de correos).\n\n**Tu objetivo es simple:**\n1.  **Analizar la intención del usuario** (agendar un evento o enviar un mail).\n2.  **Identificar la sub-herramienta** o subherramientas requeridas dentro del MCP (ej. 'enviar_mail' o 'crear_evento', pueden ser varias).\n3.  **Asegurar los parámetros:** Si la solicitud del usuario es incompleta para la sub-herramienta elegida, **debes solicitar los parámetros faltantes** (ej. la hora del evento, el destinatario del mail) de forma clara y amable.\n4.  **Ejecución y Confirmación:** Una vez que tengas **todos los parámetros válidos**, utiliza el **MCP Client Tool** para ejecutar la sub-herramienta. Luego, **confirma al usuario** de manera concisa que la tarea se ha completado (evento creado o mail enviado), detallando brevemente el resultado."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        1696,
+        880
+      ],
+      "id": "3ea37e57-9edb-48a1-9263-b880efd954df",
+      "name": "Agendador de Eventos"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Enviar Mensaje (Persona)').item.json.message.from.id }}",
+        "contextWindowLength": 7
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        1792,
+        1056
+      ],
+      "id": "8d48ac19-1311-41da-97f7-18c1af4dcfcf",
+      "name": "Memoria Simple"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-3.5-turbo",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        1632,
+        1056
+      ],
+      "id": "7a49c628-2a24-41a8-89d0-a734597b6421",
+      "name": "Modelo de Open Router"
+    },
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        416,
+        1056
+      ],
+      "id": "a42f3169-3095-4f44-8a06-d071538a8fd1",
+      "name": "Enviar Mensaje (Persona)",
+      "webhookId": "3d09e9b4-8dcf-4584-ab89-73627adef105"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Enviar Mensaje (Persona)').item.json.message.from.id }}",
+        "text": "={{ $json.output }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2096,
+        880
+      ],
+      "id": "28ddd773-d025-4c35-aedd-0d96c733b25c",
+      "name": "Mandar mensaje (Bot)",
+      "webhookId": "25993ae7-c3aa-4fa3-b49c-08c225def00f"
+    },
+    {
+      "parameters": {
+        "content": "# Elementos del Workflow\n\n## Nodos:\n1. Trigger de Telegram\n2. IF\n3. Telegram nodo (Get File)\n4. Google Gemini (Analyze audio)\n5. Edit fields\n6. Edit Fields\n7. Nodo de Agente de AI\n8. Open Router Model\n9. Simple Memory\n10. MCP Tool \n11. Telegram: Send Message\n\n\n## Importante:\n\n- Debes pedir la API Key de **Telegram** \n\n- Además debes crear una cuenta y acceder a las **API** en **OpenRouter** y **Google Gemini**\n\n\n- Revisar en **Configuración de API Keys**",
+        "height": 752,
+        "width": 528,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        80,
+        64
+      ],
+      "id": "d91b5e72-b9c9-4883-9550-ab05ddc80832",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "# Explicacion del Workflow\n\nUsamos un **trigger de Telegram** para que el bot avise cuando recibe un **mensaje**, este nodo nos va a dar toda la **información** del mensaje.  \n\nUna vez que eso pasa, chequamos con un **IF** si el mensaje es un **texto** o si es un **audio**.  \n\n**Si es un audio**, usamos el nodo de **Telegram: Get File** para **descargarlo**. Podemos **cambiar el nombre de la salida**, que por defecto es **data**. Esta salida no se verá en **Schema** o **Table** porque no es un **JSON**, sino un **archivo binario**.  \n\nLuego usamos el nodo de **Google Gemini** para **analizar el archivo de audio** que obtuvimos en el anterior nodo. En **Text Input** le damos el **prompt** para que **transcriba** lo que se dice en el audio.  \n\nAhora tenemos el **texto del audio**, pero si no hubiese sido un audio (el mensaje que recibió el bot de Telegram) ya tendríamos el **texto**, por lo que simplemente si es un audio hacemos **dos pasos más**.  \n\nAhora tenemos que **editar la salida** del nodo de **Gemini** o directamente del **Trigger del mensaje**, para que se **llamen igual**. Esto se debe a que el **agente de IA posterior** debe obtener una **entrada**, y tiene que ser el **mismo nombre** para que funcione en ambos casos.  \n\nDebido al **System Prompt** que le dimos al **agente**, va a **analizar** si debe o no **utilizar las herramientas** que le proporcionamos, sino le pedirá los **datos necesarios** de vuelta al **usuario**. Por eso le pusimos una **memoria**, para que se **acuerde** de la **información** que le da el usuario. \n\nLA herrameinta MCP le da´ra el suficiente contexto sobre las herrameintas que tiene disponibles \n\nEn caso de necesitar usar las **herramientas**, las **utiliza** y manda un **mensaje** al **usuario** de que todo se hizo correctamente.  \n\n",
+        "height": 752,
+        "width": 1104,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        656,
+        64
+      ],
+      "id": "0d9f9d0a-de8d-4121-af3d-f1653c4b5e53",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "# Configuración de API Keys\n## Open Router\n1. **Loguearte** en https://openrouter.ai/\n2. Pasar el **mouse** por tu **logo de cuenta Google**  \n3. Hacer **click** en la opción **\"Keys\"** del menú  y luego hacer **click** en **\"Create API KEY\"**  \n4. Ponle un **nombre identificativo** y un **límite** (opcional) y **Copia la API KEY** \n5. Busca el nodo **Open Router** y entra en la opción **Credential to connect with** en **\"Create new credential\"**  \n6. **Pega tu API KEY** allí y guarda  \n\n## Telegram API\n1. Descarga Telegram\n2. En la barra de búsqueda de la parte superior izquierda pon **BotFather**\n3. Mandale el siguiente mensaje: /newbot\n4. Elige un nombre para tu **bot**\n5. Luego BotFather te dara el **enlace** de tu bot y la **Api**, Copia tu api\n6. Busca el nodo **Telegram Triggerr** y entra en la opción **Credential to connect with** en **\"Create new credential\"**  \n7. **Pega tu API KEY** allí y guarda \n8. Para interactuar con el bot mandale mensajes a la **url** que te dio **BotFather** en el punto 5\n\n## Api de Gemini Studio\n1. **Loguearte** en https://aistudio.google.com/\n2. Hacer **click** en la opción **\"Get Api Key\"** del menú superior  \n4. Ir hasta abajo hasta ver la tabla de la API\n5. Hacer click en Clave API y copiarla  \n6. Busca el nodo **Google Gemini** y entra en la opción **Credential to connect with** en **\"Create new credential\"**  \n7. **Pega tu API KEY** allí y guarda  \n",
+        "height": 752,
+        "width": 832,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1808,
+        64
+      ],
+      "id": "7f44c36f-864b-45b4-818a-e1385110b9a8",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "ef1db93c-b69a-4dd3-851e-5630bceb0112",
+              "leftValue": "={{ $json.message.voice }}",
+              "rightValue": "",
+              "operator": {
+                "type": "object",
+                "operation": "exists",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "55079a2c-c861-4422-9e60-0a8fb18ac6a9",
+              "leftValue": "={{ $json.message.text }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notExists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        624,
+        1056
+      ],
+      "id": "de478d68-9fcc-44a4-a01f-b24fe2492016",
+      "name": "If",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "operation": "analyze",
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.0-flash-lite",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.0-flash-lite"
+        },
+        "text": "Transcribir textual lo que hay en el audio",
+        "inputType": "binary",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        1040,
+        880
+      ],
+      "id": "39af3fc8-9581-4476-9f94-3714b0cd9bcf",
+      "name": "Transcribir audio",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "fileId": "={{ $json.message.voice.file_id }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        832,
+        880
+      ],
+      "id": "74c83646-43fb-46d3-be42-a89a1375099d",
+      "name": "Obtener audios",
+      "webhookId": "df75df02-6c56-4e7f-b6d5-0a506f25f2e3",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "62ca28d2-ffeb-43cd-b2f6-0ca178b33e86",
+              "name": "texto",
+              "value": "={{ $json.message.text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1264,
+        1072
+      ],
+      "id": "d5a58ef0-5d8f-4304-807c-2951511f978e",
+      "name": "Cambiar campo de chat a \"texto\""
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "62ca28d2-ffeb-43cd-b2f6-0ca178b33e86",
+              "name": "texto",
+              "value": "={{ $json.content.parts[0].text.concat() }} ",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1264,
+        880
+      ],
+      "id": "07e5039f-e409-4669-a2ba-48747a0886da",
+      "name": "Cambiar campo de Content Text a \"Texto\""
+    },
+    {
+      "parameters": {
+        "content": "",
+        "height": 416,
+        "width": 2560,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        80,
+        848
+      ],
+      "id": "3bc0cc2f-fcd4-4cf6-91e9-72739acc1652",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "",
+        "height": 1328,
+        "width": 2720,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "440a9f7c-cf46-4a5f-b96d-9327e925d063",
+      "name": "Sticky Note5"
+    },
+    {
+      "parameters": {
+        "endpointUrl": "https://tu-url/mcp/mail-calendar",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
+      "typeVersion": 1.2,
+      "position": [
+        1968,
+        1056
+      ],
+      "id": "b8b3611f-df41-40ea-9655-798602e30021",
+      "name": "MCP Client"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Agendador de Eventos": {
+      "main": [
+        [
+          {
+            "node": "Mandar mensaje (Bot)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Memoria Simple": {
+      "ai_memory": [
+        [
+          {
+            "node": "Agendador de Eventos",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Modelo de Open Router": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Agendador de Eventos",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar Mensaje (Persona)": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Obtener audios",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Cambiar campo de chat a \"texto\"",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcribir audio": {
+      "main": [
+        [
+          {
+            "node": "Cambiar campo de Content Text a \"Texto\"",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtener audios": {
+      "main": [
+        [
+          {
+            "node": "Transcribir audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cambiar campo de chat a \"texto\"": {
+      "main": [
+        [
+          {
+            "node": "Agendador de Eventos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cambiar campo de Content Text a \"Texto\"": {
+      "main": [
+        [
+          {
+            "node": "Agendador de Eventos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MCP Client": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agendador de Eventos",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "f3425196-2f83-4ea1-9696-b6429dc38787",
+  "meta": {
+    "instanceId": "dcc74d053526a97413ae651f954290cf4af9e7ccb6218b502650d605743b4dfc"
+  },
+  "id": "smjh3YZZhanA5O3X",
+  "tags": []
+}
