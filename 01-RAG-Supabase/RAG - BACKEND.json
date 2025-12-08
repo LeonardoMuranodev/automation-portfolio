@@ -1,0 +1,1799 @@
+{
+  "name": "RAG - BACKEND",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "archivos_actuales",
+        "returnAll": true
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -1184,
+        912
+      ],
+      "id": "48b40ab2-d525-4749-a005-4a111b5c3a8b",
+      "name": "Obtener estado anterior",
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "BXCd5vUQABu4gCO6",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.url_supabase }}/storage/v1/object/list/{{ $json.bucket_name }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {}
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"prefix\": \"\",\n  \"limit\": 10\n}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1712,
+        912
+      ],
+      "id": "8071709a-85d2-4a3c-9567-485dd7eccd07",
+      "name": "Obtener estado actual",
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "aNdvPSUeyzLAuQiO",
+          "name": "Supabase Bearer"
+        },
+        "httpHeaderAuth": {
+          "id": "N6vImmzudL55zVC3",
+          "name": "Supabase apikey"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "archivos_actuales",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "nombre",
+              "fieldValue": "={{ $json.name }}"
+            },
+            {
+              "fieldId": "ultima_modificacion",
+              "fieldValue": "={{ $json.metadata.lastModified }}"
+            },
+            {
+              "fieldId": "tipo_archivo",
+              "fieldValue": "={{ $json.metadata.mimetype }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1216,
+        832
+      ],
+      "id": "318ac647-1fa1-440a-af71-9ec4b1baf86e",
+      "name": "Agregar archivos nuevos a BD",
+      "credentials": {
+        "supabaseApi": {
+          "id": "BXCd5vUQABu4gCO6",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "ceddf7ae-3190-4130-bb3a-96a6bed432c8",
+              "leftValue": "={{ $json.archivos_a_agregar }}",
+              "rightValue": "",
+              "operator": {
+                "type": "array",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        560,
+        912
+      ],
+      "id": "93b2c5be-42dc-48f2-8716-e515f43fd33b",
+      "name": "Validar que A AGREGAR no este vacia",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "archivos_actuales",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "nombre",
+              "condition": "eq",
+              "keyValue": "={{ $json.name }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "ultima_modificacion",
+              "fieldValue": "={{ $json.metadata.lastModified }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1168,
+        336
+      ],
+      "id": "85c4852f-791c-4330-9b91-f6f37c2f9bcc",
+      "name": "Modificar fecha de archivos modificados",
+      "credentials": {
+        "supabaseApi": {
+          "id": "BXCd5vUQABu4gCO6",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1904,
+        608
+      ],
+      "id": "2573f3cf-c376-4b94-a9c1-98e2c5564d58",
+      "name": "Mergeamos todas las ramas",
+      "executeOnce": false,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "ceddf7ae-3190-4130-bb3a-96a6bed432c8",
+              "leftValue": "={{ $json.archivos_a_modificar }}",
+              "rightValue": "",
+              "operator": {
+                "type": "array",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        512,
+        272
+      ],
+      "id": "97b2bfcb-2645-4b25-8048-d38798f559ff",
+      "name": "Validar que A MODIFICAR no este vacia"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "ceddf7ae-3190-4130-bb3a-96a6bed432c8",
+              "leftValue": "={{ $json.archivos_a_eliminar }}",
+              "rightValue": "",
+              "operator": {
+                "type": "array",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        464,
+        1488
+      ],
+      "id": "0161b8e9-b09d-432b-a329-4e9928b6fad8",
+      "name": "Validar que A ELIMINAR no este vacia"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e5f6b77b-2aac-4673-8005-0bb3d25dc7f2",
+              "name": "archivos_a_agregar",
+              "value": "={{ $json.archivos_a_agregar }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        144,
+        912
+      ],
+      "id": "58b97005-237d-49f0-9982-c1870328eb3e",
+      "name": "Dejar solo A AGREGAR",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e5f6b77b-2aac-4673-8005-0bb3d25dc7f2",
+              "name": "archivos_a_eliminar",
+              "value": "={{ $json.archivos_a_eliminar }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        160,
+        1488
+      ],
+      "id": "2af87a2a-6e0b-4654-a718-430a6f10043e",
+      "name": "Dejar solo A ELIMINAR",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e5f6b77b-2aac-4673-8005-0bb3d25dc7f2",
+              "name": "archivos_a_modificar",
+              "value": "={{ $json.archivos_a_modificar }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        176,
+        272
+      ],
+      "id": "49c8b1d7-b87d-435f-8697-eb07f41c2ffe",
+      "name": "Dejar solo A MODIFICAR",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1584,
+        288
+      ],
+      "id": "a3560ccc-ad9c-4b76-9cf8-5d2bd4021372",
+      "name": "Mergeamos A MODIFICAR",
+      "executeOnce": false,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1584,
+        880
+      ],
+      "id": "98d40bd2-7f84-4933-83c3-283b96dd2f8a",
+      "name": "Mergeamos A AGREGAR",
+      "executeOnce": false,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "archivos_a_agregar",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        768,
+        832
+      ],
+      "id": "3259cfc2-2ea2-44b3-b3a9-b48ef9b6722e",
+      "name": "Separar A AGREGAR"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "archivos_a_modificar",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        704,
+        192
+      ],
+      "id": "412ea07a-b753-4be5-8382-3956d2d4e418",
+      "name": "Separar A MODIFICAR"
+    },
+    {
+      "parameters": {
+        "jsCode": "const bucket = $('datos_entorno').first().json.bucket_name;\nconst projectUrl = $('datos_entorno').first().json.url_supabase\nconst inputItems = $input.all();\n\nconst archivosConURL = inputItems.map((item) => {\n  const nombreArchivo = item.json.nombre;\n  const url = `${projectUrl}/storage/v1/object/public/${bucket}/${encodeURIComponent(nombreArchivo)}`;\n  return {\n    ...item,\n    json: {\n      ...item.json,\n      url,\n    },\n  };\n});\n\nreturn archivosConURL;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2320,
+        608
+      ],
+      "id": "9aa72447-b9dc-4e02-bb1f-6a8b929b5bf0",
+      "name": "Agregarle URL a los archivos"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "=data"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2960,
+        608
+      ],
+      "id": "eb9597af-4e89-44b4-9dbe-e7cc80be06d2",
+      "name": "Descargar archivos",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "d9c43311-c485-45b5-8525-9b8938d09369",
+                    "leftValue": "={{ $json.tipo_archivo }}",
+                    "rightValue": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "XLSX"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "53f714b8-952b-4605-b080-e58fa10bf53f",
+                    "leftValue": "={{ $json.tipo_archivo }}",
+                    "rightValue": "text/csv",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "CSV"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.tipo_archivo }}",
+                    "rightValue": "application/pdf",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "1b34b3ac-38f5-44ea-a607-cc4d2b607d72"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "PDF"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        3312,
+        576
+      ],
+      "id": "2ca12647-a28e-4960-8f75-16c12fdd9810",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        3552,
+        720
+      ],
+      "id": "046d6db3-7e52-4fad-8015-322652dbbfb9",
+      "name": "Extraer PDF"
+    },
+    {
+      "parameters": {
+        "operation": "text",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        3552,
+        832
+      ],
+      "id": "251e3f0b-e90d-47a8-94f4-44f44a2fb9c3",
+      "name": "Extraer TXT",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "operation": "xlsx",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        3552,
+        416
+      ],
+      "id": "30da1a27-e674-431b-99b9-304b26c6fabc",
+      "name": "Extraer XLSX",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        3552,
+        576
+      ],
+      "id": "a220423c-2b78-4e9d-91ec-b196d7353214",
+      "name": "Extraer CSV",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "tableName": {
+          "__rl": true,
+          "value": "rag",
+          "mode": "list",
+          "cachedResultName": "rag"
+        },
+        "options": {
+          "queryName": "match_documents"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        4416,
+        528
+      ],
+      "id": "28d37974-6a7e-4338-88c3-308edf33cb99",
+      "name": "Supabase Vector Store",
+      "credentials": {
+        "supabaseApi": {
+          "id": "BXCd5vUQABu4gCO6",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "embed-multilingual-v2.0"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsCohere",
+      "typeVersion": 1,
+      "position": [
+        4416,
+        816
+      ],
+      "id": "a325dac9-aea3-4b67-9d48-f8c1e052a916",
+      "name": "Embeddings de Cohere",
+      "credentials": {
+        "cohereApi": {
+          "id": "L8OlG6V1jUMtp59e",
+          "name": "CohereApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\nconst archivos = items.filter((item) => {\n  return !item.json.archivos_a_modificar && !item.json.archivos_a_agregar;\n});\n\nreturn archivos;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2112,
+        608
+      ],
+      "id": "558300c6-3ea6-4968-8497-9589d3195b1f",
+      "name": "Validar si hay archivos A DESCARGAR"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        2672,
+        352
+      ],
+      "id": "0eef77eb-bdf3-406b-afd4-95e7513c0076",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        720,
+        1664
+      ],
+      "id": "30f90278-080c-49ab-aa8a-993729524f88",
+      "name": "NO hacer nada"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "=archivos_a_eliminar",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        720,
+        1488
+      ],
+      "id": "c720ce2d-6cce-41d7-afb7-e05742f862dc",
+      "name": "Separar A ELIMINAR"
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "tableId": "rag",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "archivo_padre",
+              "condition": "eq",
+              "keyValue": "={{ $json.nombre }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1248,
+        1568
+      ],
+      "id": "c0bb83eb-966b-46be-aa98-8a466746c8db",
+      "name": "Eliminar archivos borrados de BD Vectorial",
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "BXCd5vUQABu4gCO6",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "tableId": "archivos_actuales",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "nombre",
+              "condition": "eq",
+              "keyValue": "={{ $json.nombre }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1008,
+        1568
+      ],
+      "id": "5943fa07-28b8-4dac-a267-ed02b6d7f06d",
+      "name": "Eliminar archivos borrados de BD archivos actuales",
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "BXCd5vUQABu4gCO6",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\n// Contenidos exactamente inútiles\nconst basuraExacta = ['', '.', '-', '—', '•'];\n\n// Fragmentos sospechosos solo si el chunk es corto\nconst patronesBasura = [\n  'render', 'font', 'style', 'skia', 'image', 'dpi', 'glyph', 'pdfium', 'created by', 'document', 'generated with', 'confidential', 'ocr',\n  'microsoft', 'document metadata', 'pdf', 'page', 'blank', 'summary', 'copyright', 'powered by', 'google', 'table of contents'\n];\n\nconst limpios = items.filter(item => {\n  const content = item.json.pageContent?.toLowerCase()?.trim() || '';\n\n  // 1. Si está en la lista de basura exacta → descartar\n  if (basuraExacta.includes(content)) return false;\n\n  // 2. Si el texto es corto y contiene palabras técnicas → descartar\n  if (content.length < 20) {\n    for (const basura of patronesBasura) {\n      if (content.includes(basura)) return false;\n    }\n  }\n\n  // Si no cayó en ninguna trampa → mantener\n  return true;\n});\n\nreturn limpios;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4912,
+        528
+      ],
+      "id": "ed1467f4-969b-450f-afd2-41447e8e487c",
+      "name": "Filtrar chunks basura"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "rag",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "content",
+              "condition": "eq",
+              "keyValue": "={{ $json.pageContent }}"
+            },
+            {
+              "keyName": "archivo_padre",
+              "condition": "is",
+              "keyValue": "=null"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "archivo_padre",
+              "fieldValue": "={{ $('Descargar archivos').item.json.nombre }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        5200,
+        752
+      ],
+      "id": "2fb34226-6dcc-4eb3-988b-c6a0b4b19d49",
+      "name": "Agregar archivo padre de chunks",
+      "credentials": {
+        "supabaseApi": {
+          "id": "BXCd5vUQABu4gCO6",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "tableId": "rag",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "archivo_padre",
+              "condition": "eq",
+              "keyValue": "={{ $json.name }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1184,
+        144
+      ],
+      "id": "b290aa9f-4e8e-474c-8b93-8735135432f0",
+      "name": "Eliminar chunks desactualizados de BD Vectorial",
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "BXCd5vUQABu4gCO6",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "#  📥 Leer archivos de un bucket de Supabase (HTTP Request — n8n)\n\n- **Flujo mínimo:** `Cron / Schedule Trigger` → `HTTP Request` (POST)  \n(Usamos POLLING porque Supabase no provee webhooks nativos para storage.)\n\n---\n\n## ✅ URL del endpoint (estructura)\n\n- https://<project-id>.supabase.co/storage/v1/object/list/<nombre-bucket>\n  - `<project-id>` → **Project Settings > General**\n  - `<nombre-bucket>` → nombre exacto del bucket\n\nEstos datos debes configurarlos en el nodo Edit FIelds, antes de la petición HTTP\n\n---\n\n## 🛡️ Headers (obligatorios)\nEn el nodo **HTTP Request** → pestaña **Headers**:\n\n\nContent-Type: application/json\nAuthorization: Bearer <tu-anon-apikey>\n\n- La `Anon` key se obtiene en **Project Settings > Data API**. Tiene solo permisos de lectura (suficiente).\n\n---\n\n## 🔁 Método y Body\n- **Method:** POST  \n- **Body Content Type:** JSON  \n- **Body (ejemplo):**\n```json\n{\n  \"prefix\": \"\",     // deja \"\" para traer todo, o especifica carpeta/filtrado\n  \"limit\": 1000   // limit: número máximo por llamada (poner alto si tenés pocos archivos).\n} ´´´\n",
+        "height": 1200,
+        "width": 880
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -2368,
+        -128
+      ],
+      "id": "3f57a6d8-d110-4f8c-b0a4-2836ba6da4b4",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "# Comparamos estados\n\nComparamos estados para obtener :\n- Archivos nuevos\n- Archivos modificados\n- Archivos a eliminar",
+        "height": 416,
+        "width": 448
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -768,
+        656
+      ],
+      "id": "08449f9d-e2cd-4bd6-9f7f-b192892de52b",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "jsCode": "const archivosActuales = $(\"Obtener estado actual\")\n  .all()\n  .map((item) => item.json);\nconst archivosAnteriores = $input.all().map((item) => item.json);\n\nlet archivos_a_agregar = [];\nlet archivos_a_modificar = [];\nlet archivos_a_eliminar = [];\n\narchivosActuales.forEach((archivoActual) => {\n  const archivoAnterior = archivosAnteriores.find(\n    (archivoAnterior) => archivoAnterior.nombre === archivoActual.name,\n  );\n  if (!archivoAnterior) {\n    archivos_a_agregar.push(archivoActual);\n  } else if (new Date(archivoAnterior.ultima_modificacion).getTime() !== new Date(archivoActual.metadata.lastModified).getTime()\n) {\n    archivos_a_modificar.push(archivoActual);\n  }\n});\n\narchivosAnteriores.forEach((archivoAnterior) => {\n  const archivoPosterior = archivosActuales.find(\n    (archivoPosterior) => archivoAnterior.nombre === archivoPosterior.name,\n  );\n  if (!archivoPosterior) {\n    archivos_a_eliminar.push(archivoAnterior);\n  }\n});\n\n\nreturn { archivos_a_agregar, archivos_a_modificar, archivos_a_eliminar };\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -608,
+        912
+      ],
+      "id": "e2223673-c376-4d00-b95c-22534178d80b",
+      "name": "Obtener modificados, nuevos y a eliminar"
+    },
+    {
+      "parameters": {
+        "content": "# Rama de A Eliminar \n",
+        "height": 640,
+        "width": 1504,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        1232
+      ],
+      "id": "f625ba93-e251-46b3-8264-f6062091f1eb",
+      "name": "Sticky Note5"
+    },
+    {
+      "parameters": {
+        "content": "## Dejamos solo A Eliminar\n\nSolo nos quedamos con la lista de **elementos a Eliminar**",
+        "height": 496,
+        "width": 288,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        64,
+        1312
+      ],
+      "id": "0a8e7301-84a8-465c-9b17-4fe759ee3734",
+      "name": "Sticky Note6"
+    },
+    {
+      "parameters": {
+        "content": "## Validamos y separamos \n\n\n**Validamos** que haya elementos a eliminar, y si hay elementos, los separamos en **elementos simples**",
+        "height": 496,
+        "width": 480,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        400,
+        1312
+      ],
+      "id": "c96d3668-597a-4362-ae3d-197c7ee9440d",
+      "name": "Sticky Note7"
+    },
+    {
+      "parameters": {
+        "content": "## Actualizamos estado anterior y eliminanos archivos\n\n\nLos archivos a eliminar los eliminamos del **estado anterior** para su uso posterior.\n\nAdemas, eliminamos los **chunks** de la **BD Vectorial** de los archivos a ELIMINAR",
+        "height": 496,
+        "width": 480,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        944,
+        1312
+      ],
+      "id": "036b378e-13fc-4809-a19a-2130204275d9",
+      "name": "Sticky Note8"
+    },
+    {
+      "parameters": {
+        "content": "## Dejamos solo A Agregar\n\nSolo nos quedamos con la lista de **elementos a Agregar**",
+        "height": 416,
+        "width": 288,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        48,
+        672
+      ],
+      "id": "b701dc68-7b2f-471d-ab3b-1236784c229d",
+      "name": "Sticky Note9"
+    },
+    {
+      "parameters": {
+        "content": "## Validamos y separamos \n\n\n**Validamos** que haya elementos a agregar, y si hay elementos, los separamos en **elementos simples**",
+        "height": 416,
+        "width": 480,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        400,
+        672
+      ],
+      "id": "0f974df2-21da-4bd4-ac99-35f62b807779",
+      "name": "Sticky Note10"
+    },
+    {
+      "parameters": {
+        "content": "## Actualizamos estado anterior\n\n\nAgregamos a la **BD de estado anterior**, los **elementos a agregar** para su uso posterior",
+        "height": 416,
+        "width": 480,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        944,
+        672
+      ],
+      "id": "629d1d80-d9fd-413f-a8db-99b8fbbc9c1a",
+      "name": "Sticky Note11"
+    },
+    {
+      "parameters": {
+        "content": "# Rama de Agregar\n",
+        "height": 528,
+        "width": 1504,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        608
+      ],
+      "id": "af377181-0d31-441b-944e-ef4cfe76b977",
+      "name": "Sticky Note12"
+    },
+    {
+      "parameters": {
+        "content": "## Dejamos solo A Modificar\n\nSolo nos quedamos con la lista de **elementos a Modificar**",
+        "height": 464,
+        "width": 288,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        48,
+        16
+      ],
+      "id": "6f019ea0-f1e0-4e6b-89f4-1e92a94a8b0f",
+      "name": "Sticky Note13"
+    },
+    {
+      "parameters": {
+        "content": "## Validamos y separamos \n\n\n**Validamos** que haya elementos a modificar, y si hay elementos, los separamos en **elementos simples**",
+        "height": 480,
+        "width": 480,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        400,
+        16
+      ],
+      "id": "71c32529-a9ae-4f53-aea6-29c6dd4c60ff",
+      "name": "Sticky Note14"
+    },
+    {
+      "parameters": {
+        "content": "## Actualizamos estado anterior y eliminamos chunks viejos\n\n\nModificamos a la **BD de estado anterior**, con los **elementos a modificar** para su uso posterior. \n\nAdemas eliminamos los chunks viejos de los **elementos a modificar**",
+        "height": 560,
+        "width": 480,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        944,
+        -64
+      ],
+      "id": "5024525a-0ebe-4a7b-99e7-6be02316811c",
+      "name": "Sticky Note15"
+    },
+    {
+      "parameters": {
+        "content": "\n# Rama de Modificar\n",
+        "height": 624,
+        "width": 1504,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -112
+      ],
+      "id": "f9b6e8fa-0bb9-4a65-85d7-ea17db0bafde",
+      "name": "Sticky Note16"
+    },
+    {
+      "parameters": {
+        "content": "# Unimos, verificamos y agregamos las URL\n\n- Mergeamos las ramas A AGREGAR y A MODIFICAR.\n- Verificamos que hay archivos A DESCARGAR\n- A todos los archivos A DESCARGAR le agregamos una URL para ser descargados",
+        "height": 448,
+        "width": 688,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1792,
+        352
+      ],
+      "id": "2a0f598e-d8fb-4313-b515-4d77b3e59d2c",
+      "name": "Sticky Note17"
+    },
+    {
+      "parameters": {
+        "content": "## Descargamos archivo\n\n\nUsamos la URL para descargarlo en formato binario",
+        "height": 288,
+        "width": 352,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2816,
+        480
+      ],
+      "id": "08951964-b5f3-4a9a-b41b-eb69061d438e",
+      "name": "Sticky Note18"
+    },
+    {
+      "parameters": {
+        "content": "## Extraemos su informacion a JSON según tipo de archivo\n\nSacamos su informacion a formato JSON según su tipo de archivo.\n\nSI es Excel, debemos juntar todos sus campos y concatenarlos para  que sea un solo bloque de texto  \n",
+        "height": 784,
+        "width": 944,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        3216,
+        192
+      ],
+      "id": "f1be0ad0-bfd5-4e7a-9dec-384d6de67fa1",
+      "name": "Sticky Note19"
+    },
+    {
+      "parameters": {
+        "content": "## Subimos el archivo en chunks usando un agente de embedding\n\nUn modelo divide el texto en chunks, además le genera un vector (embedding) y lo guarda en una tabla de la base de datos.\n\nFiltramos los chunks basura, para que no tengan archivo padre, ese campo quedará en NULL\n\nLuego, a cada chunk le actualizamos su archivo padre para su uso posterior",
+        "height": 784,
+        "width": 1136,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        4256,
+        224
+      ],
+      "id": "e2b66053-734e-4737-bbd0-ef0c48188443",
+      "name": "Sticky Note20"
+    },
+    {
+      "parameters": {
+        "content": "# Bucle para cada archivo por separado",
+        "height": 1040,
+        "width": 2864,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2560,
+        32
+      ],
+      "id": "822b65f1-e640-47e8-bae0-2cfc1b19a6f5",
+      "name": "Sticky Note21"
+    },
+    {
+      "parameters": {
+        "content": "# ✅ Tareas pendientes para mejorar el RAG\n\n\n## 🚀 Qué se puede mejorar (escalabilidad y mantenimiento)\n\n- [ ] Dividir el flujo en sub-workflows reutilizables: descarga/extracción, embeddings, eliminación, etc.\n---\n- [ ] Usar nodos `Error Trigger` o `Try/Catch` para manejar fallos clave sin romper el flujo general.\n---\n- [ ] Agregar logs o alertas internas (cantidad de documentos agregados, fallos, eliminaciones, etc).\n---\n- [ ] Implementar indexación incremental más precisa (usando hash o timestamp) para evitar reprocesamiento innecesario.\n---\n- [ ] Agregar colas o buffers para controlar flujos masivos (muchos archivos de golpe).\n---\n- [ ] Agregar más tipos de archivos tolerados para el RAG\n---\n- [ ] Agregar todos los datos variables en un EDIT FIELDS (como la URL del projecto y nombre del bucket, pero con todos los datos; tablas, nombre s de columnas etc)\n",
+        "height": 944,
+        "width": 800,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        5600,
+        64
+      ],
+      "id": "15d75ae5-15a3-4802-bc9c-849b0716892e",
+      "name": "Sticky Note22"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 2
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -2192,
+        912
+      ],
+      "id": "b6944772-37f3-442c-a534-562a85a18869",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "content": "# 📄 Obtener estado anterior (Supabase)\n\n\n## 1. Obtener datos con nodo Supabase\n\nAgregar un nodo **Supabase** para consultar la tabla **archivos_actuales**.\n\n- Seleccionar la opción **Select**.\n- Ingresar el nombre de la tabla: `archivos_actuales`.\n\n(Es probable que sea la única tabla disponible si el proyecto es nuevo.)\n\n---\n\n## 2. Ajustes importantes del nodo\n\nEn **Settings**:\n\n- Activar **Always Output Data**\n\nEsto evita que el flujo se detenga cuando la tabla está vacía, ya que el nodo devolverá un objeto vacío en lugar de no devolver nada.\n\n---\n",
+        "height": 864,
+        "width": 512
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1392,
+        208
+      ],
+      "id": "9fcb664e-6871-4081-84c0-a870970096b6",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        4560,
+        736
+      ],
+      "id": "b036f1c9-0d87-4e7e-9b92-01f83a5f9254",
+      "name": "Default Data Loader"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        3808,
+        416
+      ],
+      "id": "7d24a0e2-62d6-4cc8-8f67-e211c5735710",
+      "name": "Agregar campos de excel / csv"
+    },
+    {
+      "parameters": {
+        "fieldsToSummarize": {
+          "values": [
+            {
+              "aggregation": "concatenate",
+              "field": "data"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.summarize",
+      "typeVersion": 1.1,
+      "position": [
+        4048,
+        416
+      ],
+      "id": "9ca80a1f-7976-4421-a1f5-6c2465f26f67",
+      "name": "Concatenar campos de excel / csv"
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "tableId": "rag",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "archivo_padre",
+              "condition": "is",
+              "keyValue": "null"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        2944,
+        304
+      ],
+      "id": "63d33fe8-8dbe-4dd8-8646-8a9e7edc757f",
+      "name": "Delete a row",
+      "executeOnce": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "BXCd5vUQABu4gCO6",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Eliminamos chunks basura\n\nLos chunks que hayan sido filtrados no tendrán archivo padre, asi que en la BD, ese campo estará como NULL\n\nUsamos eso para hacer un Delete",
+        "height": 304,
+        "width": 352,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2816,
+        128
+      ],
+      "id": "99aebbcc-e0fc-44d2-96cf-313defb9bead",
+      "name": "Sticky Note23"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "283d4f1e-af7b-44bf-b055-31af7ecd4cc1",
+              "name": "bucket_name",
+              "value": "archivos",
+              "type": "string"
+            },
+            {
+              "id": "c7e5d79c-b597-491d-bec9-f840b4811dcb",
+              "name": "url_supabase",
+              "value": "https://vsqtckejfhflydyqkagc.supabase.co",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1952,
+        912
+      ],
+      "id": "0986fa5b-9161-4a01-b8d7-1b84ecd920a3",
+      "name": "datos_entorno"
+    },
+    {
+      "parameters": {
+        "content": "#  📥 Requisitos Previos al flujo\n\n## 0. Crear una cuenta en Supabase y un projecto\n\n## 1. Crear tabla para archivos en Supabase\n\nCrear una tabla llamada **archivos_actuales** con estos campos:\n\n- **id** → aparece por defecto  \n- **nombre_archivo** → tipo `text`  \n- **ultima_modificacion** → puede ser `timestamptz` o `text` (solo vamos a comparar igualdad)\n\nGuardar cambios para crear la tabla.\n---\n\n## 2. Instalar la extension vector\n\n En el menú izquierdo  del proyecto: **Databases > Extensions** buscar **pgvector o vector  y habilitarla\n\n\n## 3. Crear tabla para el rag en Supabase\n\nCrear una tabla llamada **rag** con estos campos:\n\n- **id** → aparece por defecto  \n- **content** → tipo `text`  \n- **embedding** → vector (si no aparece este tipo, chequea que tengas instalado la extension vector)\n- **metadata** -> tipo jsonb\n- **archivo_padre**  -> tipo text\n\n---\n## 4 Pegar codigo de funcion match_documents\n\nPegar el codigo del archivo **function_match_documents** en SQL Editor en Supabase\nDe lo contrario, te dará error a la hora de usar el Nodo de Supabase Vector Store Retrieval Documents For Agent AI\n\n## 5 Configurar datos del entorno\n\n- En el edit fields configurar la url de tu proyecto:\n  - Tu project ID esta en el apartado Project Settings > General\n- En el edit fields configurar  el nombre de tu bucket:\n  - En el menú lateral izquierdo de Supabase, vamos a ver una opción llamada Storage\n  - Crear un BUCKET y agregarle un Policy para que se puedan leer sus archivos\n  - New Policy > For full Customization: Le damos un nombre, con la operación Select, y en Target role  anon.\n- Cambiar todos los nodos de supabase con las respectivas  tablas y campos creados\n\n\n \n",
+        "height": 1200,
+        "width": 880,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -3328,
+        -112
+      ],
+      "id": "e23b25a1-0fcf-47e2-b031-1c54d9fe1275",
+      "name": "Sticky Note24"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Obtener estado anterior": {
+      "main": [
+        [
+          {
+            "node": "Obtener modificados, nuevos y a eliminar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtener estado actual": {
+      "main": [
+        [
+          {
+            "node": "Obtener estado anterior",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agregar archivos nuevos a BD": {
+      "main": [
+        [
+          {
+            "node": "Mergeamos A AGREGAR",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar que A AGREGAR no este vacia": {
+      "main": [
+        [
+          {
+            "node": "Separar A AGREGAR",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mergeamos A AGREGAR",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Modificar fecha de archivos modificados": {
+      "main": [
+        [
+          {
+            "node": "Mergeamos A MODIFICAR",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mergeamos todas las ramas": {
+      "main": [
+        [
+          {
+            "node": "Validar si hay archivos A DESCARGAR",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar que A MODIFICAR no este vacia": {
+      "main": [
+        [
+          {
+            "node": "Separar A MODIFICAR",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mergeamos A MODIFICAR",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Validar que A ELIMINAR no este vacia": {
+      "main": [
+        [
+          {
+            "node": "Separar A ELIMINAR",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "NO hacer nada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dejar solo A AGREGAR": {
+      "main": [
+        [
+          {
+            "node": "Validar que A AGREGAR no este vacia",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dejar solo A ELIMINAR": {
+      "main": [
+        [
+          {
+            "node": "Validar que A ELIMINAR no este vacia",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dejar solo A MODIFICAR": {
+      "main": [
+        [
+          {
+            "node": "Validar que A MODIFICAR no este vacia",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mergeamos A MODIFICAR": {
+      "main": [
+        [
+          {
+            "node": "Mergeamos todas las ramas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mergeamos A AGREGAR": {
+      "main": [
+        [
+          {
+            "node": "Mergeamos todas las ramas",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Separar A AGREGAR": {
+      "main": [
+        [
+          {
+            "node": "Agregar archivos nuevos a BD",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Separar A MODIFICAR": {
+      "main": [
+        [
+          {
+            "node": "Modificar fecha de archivos modificados",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Eliminar chunks desactualizados de BD Vectorial",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agregarle URL a los archivos": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Descargar archivos": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Extraer XLSX",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extraer CSV",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extraer PDF",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extraer TXT",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extraer XLSX": {
+      "main": [
+        [
+          {
+            "node": "Agregar campos de excel / csv",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extraer PDF": {
+      "main": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extraer CSV": {
+      "main": [
+        [
+          {
+            "node": "Agregar campos de excel / csv",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extraer TXT": {
+      "main": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings de Cohere": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar si hay archivos A DESCARGAR": {
+      "main": [
+        [
+          {
+            "node": "Agregarle URL a los archivos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase Vector Store": {
+      "main": [
+        [
+          {
+            "node": "Filtrar chunks basura",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "Delete a row",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Descargar archivos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Separar A ELIMINAR": {
+      "main": [
+        [
+          {
+            "node": "Eliminar archivos borrados de BD archivos actuales",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Eliminar archivos borrados de BD archivos actuales": {
+      "main": [
+        [
+          {
+            "node": "Eliminar archivos borrados de BD Vectorial",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filtrar chunks basura": {
+      "main": [
+        [
+          {
+            "node": "Agregar archivo padre de chunks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agregar archivo padre de chunks": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Eliminar chunks desactualizados de BD Vectorial": {
+      "main": [
+        []
+      ]
+    },
+    "Obtener modificados, nuevos y a eliminar": {
+      "main": [
+        [
+          {
+            "node": "Dejar solo A AGREGAR",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Dejar solo A ELIMINAR",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Dejar solo A MODIFICAR",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "datos_entorno",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agregar campos de excel / csv": {
+      "main": [
+        [
+          {
+            "node": "Concatenar campos de excel / csv",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Concatenar campos de excel / csv": {
+      "main": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "datos_entorno": {
+      "main": [
+        [
+          {
+            "node": "Obtener estado actual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "a354f37f-3516-4d95-b219-81ed2c7ca2b8",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "dcc74d053526a97413ae651f954290cf4af9e7ccb6218b502650d605743b4dfc"
+  },
+  "id": "Z3XCeV7W3Z1f70Op",
+  "tags": []
+}

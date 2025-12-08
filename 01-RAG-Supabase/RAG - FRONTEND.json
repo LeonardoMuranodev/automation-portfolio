@@ -1,0 +1,514 @@
+{
+  "name": "RAG - FRONTEND",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.texto }}",
+        "options": {
+          "systemMessage": "=Eres un asistente de inteligencia artificial especializado y restringido EXCLUSIVAMENTE a la temática de: [INSERTA AQUÍ TU TEMÁTICA, EJ: SOPORTE TÉCNICO DE EMPRESA X].\n\nTu comportamiento se rige por las siguientes reglas estrictas de toma de decisiones:\n\nPASO 1: EVALUACIÓN DE TEMÁTICA (CRÍTICO)\nAntes de llamar a cualquier herramienta, analiza la pregunta del usuario.\n- ¿La pregunta está relacionada con [TU TEMÁTICA]?\n   -> SI: Procede al PASO 2.\n   -> NO: DETENTE. NO uses ninguna herramienta. NO busques en la base de datos. Responde inmediatamente: \"Lo siento, mi función se limita a [TU TEMÁTICA], por lo que no dispongo de información sobre ese tema ajeno.\"\n\nPASO 2: BÚSQUEDA DE INFORMACIÓN\nSi pasaste el filtro anterior, es OBLIGATORIO que utilices la herramienta \"supabase_vector_store\" (o el nombre que tenga tu tool) para buscar la información necesaria. Nunca respondas con conocimientos generales que traigas pre-entrenados; debes verificar la base de datos.\n\nPASO 3: GENERACIÓN DE RESPUESTA\nAnaliza el contexto devuelto por la herramienta \"supabase_vector_store\":\n- CASO A: La herramienta devolvió información relevante.\n   -> Responde amablemente al usuario basándote ESTRICTAMENTE en esa información.\n- CASO B: La herramienta devolvió vacío o información que no responde la duda específica.\n   -> Responde: \"He consultado mi base de conocimientos sobre [TU TEMÁTICA], pero lamentablemente no tengo información específica registrada sobre esa consulta en particular.\"\n\nREGLA DE ORO:\nJamás inventes información. Si no está en el contexto recuperado por la herramienta, la respuesta es que \"no tienes esa información\".\n\nIMPORTANTE: No digas el nombre de la herramienta, di \"Basado en la información que tengo\" o un sinónimo\n\n\nPASO 1: EVALUACIÓN DE TEMÁTICA (CRÍTICO)\nAntes de llamar a cualquier herramienta, analiza la pregunta del usuario.\n- ¿La pregunta está relacionada con ajedrez?\n   -> SI: Procede al PASO 2.\n   -> NO: DETENTE. NO uses ninguna herramienta. NO busques en la base de datos. Responde inmediatamente: \"Lo siento, mi función se limita a ajedrez, por lo que no dispongo de información sobre ese tema ajeno.\"\n\nPASO 2: BÚSQUEDA DE INFORMACIÓN\nSi pasaste el filtro anterior, es OBLIGATORIO que utilices la herramienta \"supabase_vector_store\" para buscar la información necesaria. Nunca respondas con conocimientos generales que traigas pre-entrenados; debes verificar la base de datos.\n\nPASO 3: GENERACIÓN DE RESPUESTA\nAnaliza el contexto devuelto por la herramienta \"supabase_vector_store\":\n- CASO A: La herramienta devolvió información relevante.\n   -> Responde amablemente al usuario basándote ESTRICTAMENTE en esa información.\n- CASO B: La herramienta devolvió vacío o información que no responde la duda específica.\n   -> Responde: \"He consultado mi base de conocimientos sobre ajedrez, pero lamentablemente no tengo información específica registrada sobre esa consulta en particular.\"\n\nREGLA DE ORO:\nJamás inventes información. Si no está en el contexto recuperado por la herramienta, la respuesta es que \"no tienes esa información\".\n\nIMPORTANTE: No digas el nombre de la herrramienta, di \"Basado en la informacion que tengo\" o un sinonimo"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        1744,
+        928
+      ],
+      "id": "ac8e7f3d-7868-43ab-bc37-4313d1738a50",
+      "name": "Agendador de Eventos"
+    },
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        432,
+        1104
+      ],
+      "id": "7c5ca3d0-07f0-4c3e-9439-0b15ebf9c82e",
+      "name": "Enviar Mensaje (Persona)",
+      "webhookId": "3d09e9b4-8dcf-4584-ab89-73627adef105",
+      "credentials": {
+        "telegramApi": {
+          "id": "MD9V1nEAtEtu8wfe",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Enviar Mensaje (Persona)').item.json.message.from.id }}",
+        "text": "={{ $('Agendador de Eventos').item.json.output }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2352,
+        928
+      ],
+      "id": "25adc0e5-4a69-4ada-ad34-5eaeb897f50a",
+      "name": "Mandar mensaje (Bot)",
+      "webhookId": "25993ae7-c3aa-4fa3-b49c-08c225def00f",
+      "credentials": {
+        "telegramApi": {
+          "id": "MD9V1nEAtEtu8wfe",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "# Elementos del Workflow\n\n## Nodos:\n1. Trigger de Telegram\n2. IF\n3. Telegram nodo (Get File)\n4. Google Gemini (Analyze audio)\n5. Edit fields\n6. Edit Fields\n7. Nodo de Agente de AI\n8. Open Router Model\n9. Simple Memory\n10. Supabase Vector Store Tool (Retrieval Documents For Agent AI)\n11. Telegram: Send Message\n\n\n## Importante:\n\nDebes cambiar el System Prompt para indicar de que es el RAG al agente\n\nDebes cambiar la descripcion de la herrameinta de Supabase para que este relacionada con tu tematica",
+        "height": 752,
+        "width": 528,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        128,
+        112
+      ],
+      "id": "dc67d0ae-5e4a-4968-bb06-58071ec4af45",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "# Explicacion del Workflow\n\nUsamos un **trigger de Telegram** para que el bot avise cuando recibe un **mensaje**, este nodo nos va a dar toda la **información** del mensaje.  \n\nUna vez que eso pasa, chequamos con un **IF** si el mensaje es un **texto** o si es un **audio**.  \n\n**Si es un audio**, usamos el nodo de **Telegram: Get File** para **descargarlo**. Podemos **cambiar el nombre de la salida**, que por defecto es **data**. Esta salida no se verá en **Schema** o **Table** porque no es un **JSON**, sino un **archivo binario**.  \n\nLuego usamos el nodo de **Google Gemini** para **analizar el archivo de audio** que obtuvimos en el anterior nodo. En **Text Input** le damos el **prompt** para que **transcriba** lo que se dice en el audio.  \n\nAhora tenemos el **texto del audio**, pero si no hubiese sido un audio (el mensaje que recibió el bot de Telegram) ya tendríamos el **texto**, por lo que simplemente si es un audio hacemos **dos pasos más**.  \n\nAhora tenemos que **editar la salida** del nodo de **Gemini** o directamente del **Trigger del mensaje**, para que se **llamen igual**. Esto se debe a que el **agente de IA posterior** debe obtener una **entrada**, y tiene que ser el **mismo nombre** para que funcione en ambos casos.  \n\nDebido al **System Prompt** que le dimos al **agente**, va a **analizar** si usa la herrameinta **Supabase Vector Store** con la operación **Retrieval Document For a Agent AI**.  \n\nEn caso de necesitar usar las **herramientas**, las **utiliza** y manda un **mensaje** al **usuario** de que todo se hizo correctamente.  \n\n",
+        "height": 752,
+        "width": 1104,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        704,
+        112
+      ],
+      "id": "b549aa81-f198-40dd-8997-a19c9585fd01",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "# Configuración de API Keys\n\n## Telegram API\n1. Descarga Telegram\n2. En la barra de búsqueda de la parte superior izquierda pon **BotFather**\n3. Mandale el siguiente mensaje: /newbot\n4. Elige un nombre para tu **bot**\n5. Luego BotFather te dara el **enlace** de tu bot y la **Api**, Copia tu api\n6. Busca el nodo **Telegram Triggerr** y entra en la opción **Credential to connect with** en **\"Create new credential\"**  \n7. **Pega tu API KEY** allí y guarda \n8. Para interactuar con el bot mandale mensajes a la **url** que te dio **BotFather** en el punto 5\n\n## Api de Gemini Studio\n1. **Loguearte** en https://aistudio.google.com/\n2. Hacer **click** en la opción **\"Get Api Key\"** del menú superior  \n4. Ir hasta abajo hasta ver la tabla de la API\n5. Hacer click en Clave API y copiarla  \n6. Busca el nodo **Google Gemini** y entra en la opción **Credential to connect with** en **\"Create new credential\"**  \n7. **Pega tu API KEY** allí y guarda  \n",
+        "height": 752,
+        "width": 832,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1856,
+        112
+      ],
+      "id": "24e09083-c0c7-4fa0-af47-309ca9d4fd7c",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "ef1db93c-b69a-4dd3-851e-5630bceb0112",
+              "leftValue": "={{ $json.message.voice }}",
+              "rightValue": "",
+              "operator": {
+                "type": "object",
+                "operation": "exists",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "55079a2c-c861-4422-9e60-0a8fb18ac6a9",
+              "leftValue": "={{ $json.message.text }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notExists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        672,
+        1104
+      ],
+      "id": "11a6e8d9-42b2-4b09-a63d-060c106b0891",
+      "name": "If",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "operation": "analyze",
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.0-flash-lite",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.0-flash-lite"
+        },
+        "text": "Transcribir textual lo que hay en el audio",
+        "inputType": "binary",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        1088,
+        928
+      ],
+      "id": "ee4fd67c-8737-41aa-a7ed-6e233ac295e2",
+      "name": "Transcribir audio",
+      "alwaysOutputData": false,
+      "credentials": {
+        "googlePalmApi": {
+          "id": "46HdBYalRV1mF9mh",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "fileId": "={{ $json.message.voice.file_id }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        880,
+        928
+      ],
+      "id": "63820ef7-28c4-45ea-8ff3-840352c22c95",
+      "name": "Obtener audios",
+      "webhookId": "df75df02-6c56-4e7f-b6d5-0a506f25f2e3",
+      "alwaysOutputData": true,
+      "credentials": {
+        "telegramApi": {
+          "id": "MD9V1nEAtEtu8wfe",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "62ca28d2-ffeb-43cd-b2f6-0ca178b33e86",
+              "name": "texto",
+              "value": "={{ $json.message.text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1312,
+        1120
+      ],
+      "id": "453d5f9d-e0f5-45aa-8c6c-91087b94e42e",
+      "name": "Cambiar campo de chat a \"texto\""
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "62ca28d2-ffeb-43cd-b2f6-0ca178b33e86",
+              "name": "texto",
+              "value": "={{ $json.content.parts[0].text.concat() }} ",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1312,
+        928
+      ],
+      "id": "2f2538ce-7807-4c4a-b96b-6235a1d815c1",
+      "name": "Cambiar campo de Content Text a \"Texto\""
+    },
+    {
+      "parameters": {
+        "content": "",
+        "height": 544,
+        "width": 2560,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        128,
+        896
+      ],
+      "id": "786196e5-c194-4597-832b-c0431a3af51a",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "",
+        "height": 1424,
+        "width": 2720,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        32,
+        64
+      ],
+      "id": "8c8ee18a-fefe-47eb-a176-05a29ebc59e7",
+      "name": "Sticky Note5"
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "=Utiliza esta herramienta para buscar y recuperar información relevante, documentos de contexto o respuestas basadas en la base de conocimientos de ajedrez. Úsala siempre que el usuario haga preguntas sobre [TU TEMATICA], ajedrecistas o necesite información específica que no sea de conocimiento público general.",
+        "tableName": {
+          "__rl": true,
+          "value": "rag",
+          "mode": "list",
+          "cachedResultName": "rag"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        1984,
+        1120
+      ],
+      "id": "6c5d0d8c-c602-4a3a-99c5-a728f8969799",
+      "name": "Supabase Vector Store",
+      "credentials": {
+        "supabaseApi": {
+          "id": "BXCd5vUQABu4gCO6",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "embed-multilingual-v2.0"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsCohere",
+      "typeVersion": 1,
+      "position": [
+        2112,
+        1296
+      ],
+      "id": "688dad88-9612-467b-b418-877133eeb3f6",
+      "name": "Embeddings Cohere",
+      "credentials": {
+        "cohereApi": {
+          "id": "L8OlG6V1jUMtp59e",
+          "name": "CohereApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 3
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2096,
+        928
+      ],
+      "id": "97dec885-4c00-43fa-82f3-7cd873ed7ded",
+      "name": "Wait",
+      "webhookId": "02b2094f-629c-4bc9-8345-a12eb54de56b"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1616,
+        1136
+      ],
+      "id": "e6f4f9c8-bab6-467a-b267-16410ac6a72f",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "46HdBYalRV1mF9mh",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Agendador de Eventos": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar Mensaje (Persona)": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Obtener audios",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Cambiar campo de chat a \"texto\"",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcribir audio": {
+      "main": [
+        [
+          {
+            "node": "Cambiar campo de Content Text a \"Texto\"",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtener audios": {
+      "main": [
+        [
+          {
+            "node": "Transcribir audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cambiar campo de chat a \"texto\"": {
+      "main": [
+        [
+          {
+            "node": "Agendador de Eventos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cambiar campo de Content Text a \"Texto\"": {
+      "main": [
+        [
+          {
+            "node": "Agendador de Eventos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase Vector Store": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agendador de Eventos",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Cohere": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Mandar mensaje (Bot)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Agendador de Eventos",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "a6d06ccb-d165-4559-bc81-32887ea0a5d9",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "dcc74d053526a97413ae651f954290cf4af9e7ccb6218b502650d605743b4dfc"
+  },
+  "id": "F4tvWjkPRL0lnv6y",
+  "tags": []
+}
