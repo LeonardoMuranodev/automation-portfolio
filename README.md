@@ -4,7 +4,7 @@
 
 Este repositorio centraliza mis proyectos más recientes enfocados en la optimización de procesos de negocio, integraciones de APIs y desarrollo de soluciones con Inteligencia Artificial.
 
-🔗 **LinkedIn:** [Leonardo Murano](https://www.linkedin.com/in/leonardo-murano-perfil/) <br>
+🔗 **LinkedIn:** [Leonardo Murano](https://www.linkedin.com/in/leonardo-murano/) <br>
 📧 **Contacto:** leomellimurano@gmail.com
 
 ---
@@ -60,6 +60,16 @@ Este repositorio centraliza mis proyectos más recientes enfocados en la optimiz
     * Registro de la información del cliente en Google Sheets (Base de datos).
     * Disparo automático de correos de confirmación personalizados.
 * 📂 *[Ver flujo en carpeta /04-Citas-gestion]*
+
+### 5. 📩 Clasificador de emails (AI + Google Workspace)
+**Objetivo:** Clasificar los emails entrantes con etiquetas.
+* **Tecnologías:** n8n, Gmail Trigger, AI (api de Grog), Google Sheets.
+* **Flujo:**
+    * LLega un mail mediante el Gmail Trigger.
+    * El agente de IA asigna una etiqueta.
+    * Lo registramos en un google sheets y lo marcamos como leido.
+* 📂 *[Ver flujo en carpeta /05-emails-classifier]*
+
 
 ---
 
