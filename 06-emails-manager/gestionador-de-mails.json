@@ -1,0 +1,706 @@
+{
+  "name": "gestionador-de-mails",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=rem: {{ $json.from.value[0].address }}\nsub: {{ $json.subject }}\ncorreo: {{ $json.text }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=Analiza el remitente, asunto y correo que te pase el usuario; y extrae la información en formato JSON estricto.\n\nCategorías permitidas para 'etiqueta':\n- leads (Posibles clientes, preguntas de precios)\n- facturacion (Recibos, pagos, bancos)\n- soporte (Problemas técnicos, quejas)\n- newsletter (Boletines, info general)\n- otros (Resto)\n\nOutput JSON esperado:\n{\n  \"etiqueta\": \"string (una de las categorías)\",\n  \"confianza\": number (0-1),\n  \"resumen\": \"string (max 10 palabras)\",\n  \"urgencia\": \"string (Alta/Media/Baja)\"\n}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        64,
+        0
+      ],
+      "id": "49b756b5-1cdc-4e37-845d-564eed798ddc",
+      "name": "Clasificador de mails",
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "simple": false,
+        "filters": {
+          "includeSpamTrash": false,
+          "readStatus": "unread"
+        },
+        "options": {
+          "downloadAttachments": false
+        }
+      },
+      "id": "022443ea-d5d5-4bbf-8bc7-c365ff7755ef",
+      "name": "Gmail Trigger",
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -160,
+        0
+      ],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "ZRmu8mEGTcCWcRcW",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "llama-3.1-8b-instant",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        64,
+        224
+      ],
+      "id": "8c388b7e-d118-46af-822e-ce7247495ac6",
+      "name": "Groq Model",
+      "credentials": {
+        "groqApi": {
+          "id": "NmX22lZSWKq1Oodc",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"etiqueta\": {\n      \"type\": \"string\",\n      \"enum\": [\"leads\", \"facturacion\", \"soporte\", \"newsletter\", \"spam\", \"otros\"],\n      \"description\": \"La categoría principal del email según su contenido.\"\n    },\n    \"confianza\": {\n      \"type\": \"number\",\n      \"description\": \"Nivel de seguridad de la clasificación entre 0 y 1.\"\n    },\n    \"resumen\": {\n      \"type\": \"string\",\n      \"description\": \"Un resumen muy breve del correo (máximo 10 palabras).\"\n    },\n    \"urgencia\": {\n      \"type\": \"string\",\n      \"enum\": [\"Alta\", \"Media\", \"Baja\"],\n      \"description\": \"Nivel de urgencia basado en el tono del remitente.\"\n    }\n  },\n  \"required\": [\"etiqueta\", \"confianza\", \"resumen\", \"urgencia\"],\n  \"additionalProperties\": false\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        208,
+        224
+      ],
+      "id": "3d7d5c1f-1085-44a9-bf08-91b0d5bcf4b4",
+      "name": "JSON de salida"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.output.etiqueta }}",
+                    "rightValue": "spam",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "5d20d83e-3780-420f-b7c0-a7998cf255ac"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "spam"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "a65f69b6-b780-46fa-bd8b-c2451ebea8d2",
+                    "leftValue": "={{ $json.output.etiqueta }}",
+                    "rightValue": "facturacion",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "facturacion"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "c91b86a1-7c26-4308-8b04-d3579d6eb975",
+                    "leftValue": "={{ $json.output.etiqueta }}",
+                    "rightValue": "soporte",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "soporte"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        416,
+        -32
+      ],
+      "id": "02ef4f7e-14a5-435f-a8fd-e7b4c357c6b9",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "messageId": "={{ $('Gmail Trigger').item.json.id }}"
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        784,
+        -160
+      ],
+      "id": "8a0a86fc-0a50-4f98-908d-c9c41e11eec3",
+      "name": "Eliminar mensaje",
+      "webhookId": "bc2b344c-2dde-4716-9209-8bcae91a166d",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "ZRmu8mEGTcCWcRcW",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "perItem",
+        "minutesSaved": 1
+      },
+      "type": "n8n-nodes-base.timeSaved",
+      "typeVersion": 1,
+      "position": [
+        1056,
+        -16
+      ],
+      "id": "a6abfdff-d5c7-45ff-a896-2bf54d2f2d2c",
+      "name": "Ahorro 30 Seg"
+    },
+    {
+      "parameters": {
+        "mode": "perItem",
+        "minutesSaved": 3
+      },
+      "type": "n8n-nodes-base.timeSaved",
+      "typeVersion": 1,
+      "position": [
+        1056,
+        160
+      ],
+      "id": "adfd45de-395b-4ef4-b9be-23a4dc4537db",
+      "name": "Ahorro 3 min"
+    },
+    {
+      "parameters": {
+        "mode": "perItem",
+        "minutesSaved": 2
+      },
+      "type": "n8n-nodes-base.timeSaved",
+      "typeVersion": 1,
+      "position": [
+        1056,
+        368
+      ],
+      "id": "3ad93b42-7dce-4a05-9b44-3c0436fe9261",
+      "name": "Ahorro 2 min"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1S3YOEzs1YGmlQULTxL8bTaqey2CEZvo2h6EVJe09OG8",
+          "mode": "list",
+          "cachedResultName": "log-clasificador-email",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1S3YOEzs1YGmlQULTxL8bTaqey2CEZvo2h6EVJe09OG8/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Hoja 1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1S3YOEzs1YGmlQULTxL8bTaqey2CEZvo2h6EVJe09OG8/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Categoria Asignada": "={{ $json.etiqueta }}",
+            "AI Confidence": "={{ $json.ai_confidence }}",
+            "Urgencia": "={{ $json.urgencia }}",
+            "Fecha": "={{ $json.fecha }}",
+            "Remitente": "={{ $json.remitente }}",
+            "Asunto": "={{ $json.asunto }}",
+            "Resumen": "={{ $json.resumen }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Fecha",
+              "displayName": "Fecha",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Remitente",
+              "displayName": "Remitente",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Asunto",
+              "displayName": "Asunto",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Resumen",
+              "displayName": "Resumen",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Categoria Asignada",
+              "displayName": "Categoria Asignada",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "AI Confidence",
+              "displayName": "AI Confidence",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Urgencia",
+              "displayName": "Urgencia",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1536,
+        160
+      ],
+      "id": "5451aaf9-1d67-4b91-aafa-33e47b7a5a1f",
+      "name": "Log emails",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "gH0wKxgj3Zpalpoa",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "3dac5c10-6c32-4e01-91a3-6c96f2bd6a90",
+              "name": "fecha",
+              "value": "={{ $('Gmail Trigger').item.json.date.substring(0,10) }} {{ $('Gmail Trigger').item.json.date.substring(11,19) }}",
+              "type": "string"
+            },
+            {
+              "id": "137bd8cc-0d8b-4b94-bde2-edc917e612f1",
+              "name": "remitente",
+              "value": "={{ $('Gmail Trigger').item.json.from.value[0].address }}",
+              "type": "string"
+            },
+            {
+              "id": "77ee19ce-6621-4627-9eee-3cd18f66637e",
+              "name": "asunto",
+              "value": "={{ $('Gmail Trigger').item.json.subject }}",
+              "type": "string"
+            },
+            {
+              "id": "5b206854-4a05-4d42-b359-2f21a8fa41b5",
+              "name": "resumen",
+              "value": "={{ $('Clasificador de mails').item.json.output.resumen }}",
+              "type": "string"
+            },
+            {
+              "id": "d0aa34f7-8f22-4526-afb8-a36c1f0b8b57",
+              "name": "etiqueta",
+              "value": "={{ $('Clasificador de mails').item.json.output.etiqueta }}",
+              "type": "string"
+            },
+            {
+              "id": "86f94732-87af-4134-8223-5a0922f31206",
+              "name": "ai_confidence",
+              "value": "={{ $('Clasificador de mails').item.json.output.confianza }}",
+              "type": "number"
+            },
+            {
+              "id": "e0e6ed03-96f5-40ae-ac4b-a63613a2b12d",
+              "name": "urgencia",
+              "value": "={{ $('Clasificador de mails').item.json.output.urgencia }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1344,
+        160
+      ],
+      "id": "24ef0297-d934-44fb-94a7-0de9309986c2",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0ABBAYKFRD",
+          "mode": "list",
+          "cachedResultName": "soporte"
+        },
+        "text": "=Nuevo Soporte\n\nDe: {{ $('Gmail Trigger').item.json.from.value[0].address }}\n\nAsunto: {{ $('Gmail Trigger').item.json.subject }}\n\n\nMensaje {{ $('Gmail Trigger').item.json.text }}",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.4,
+      "position": [
+        640,
+        368
+      ],
+      "id": "881e9679-1654-44c3-ae88-5a5bf6e35f4a",
+      "name": "Notificacion soporte",
+      "webhookId": "b9d5bf45-6bc0-4f04-89ad-c47f346fd019",
+      "credentials": {
+        "slackOAuth2Api": {
+          "id": "vkcQdSyQtbFEb8lU",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "markAsRead",
+        "messageId": "={{ $('Gmail Trigger').item.json.id }}"
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1728,
+        160
+      ],
+      "id": "56215555-70d5-42c2-991c-f14573504a50",
+      "name": "Leer mensaje",
+      "webhookId": "45aa4cae-cdbd-4694-9103-01ee026a1386",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "ZRmu8mEGTcCWcRcW",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "messageId": "={{ $('Gmail Trigger').item.json.id }}",
+        "simple": false,
+        "options": {
+          "dataPropertyAttachmentsPrefixName": "data",
+          "downloadAttachments": true
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        624,
+        160
+      ],
+      "id": "3b982893-8188-4104-8ca4-21f66b006816",
+      "name": "Get a message",
+      "webhookId": "5dad950b-d9b0-486a-944e-c3e323ce3b0c",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "ZRmu8mEGTcCWcRcW",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "write",
+        "fileName": "factura.pdf",
+        "dataPropertyName": "data0",
+        "options": {
+          "append": false
+        }
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1.1,
+      "position": [
+        848,
+        160
+      ],
+      "id": "bcaf6106-6325-4ff9-8222-590f9ef17c0f",
+      "name": "Guardar en servidor"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "Clasificador de mails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Clasificador de mails",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "JSON de salida": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Clasificador de mails",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clasificador de mails": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Eliminar mensaje",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get a message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notificacion soporte",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ahorro 30 Seg",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Eliminar mensaje": {
+      "main": [
+        [
+          {
+            "node": "Ahorro 30 Seg",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Log emails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ahorro 30 Seg": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ahorro 3 min": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ahorro 2 min": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log emails": {
+      "main": [
+        [
+          {
+            "node": "Leer mensaje",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notificacion soporte": {
+      "main": [
+        [
+          {
+            "node": "Ahorro 2 min",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a message": {
+      "main": [
+        [
+          {
+            "node": "Guardar en servidor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar en servidor": {
+      "main": [
+        [
+          {
+            "node": "Ahorro 3 min",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false,
+    "timeSavedMode": "dynamic",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "ded7b67f-1a31-4af8-a22d-e4b952390557",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "1bfbfecce0299e63862146bcc19451a1dd8d2308612038737aeb8df8eafb26b5"
+  },
+  "id": "fqj3O7_GZ_Kdxhzn3jOVR",
+  "tags": []
+}

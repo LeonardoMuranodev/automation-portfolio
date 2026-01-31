@@ -65,11 +65,23 @@ Este repositorio centraliza mis proyectos más recientes enfocados en la optimiz
 **Objetivo:** Clasificar los emails entrantes con etiquetas.
 * **Tecnologías:** n8n, Gmail Trigger, AI (api de Grog), Google Sheets.
 * **Flujo:**
-    * LLega un mail mediante el Gmail Trigger.
+    * Llega un mail mediante el Gmail Trigger.
     * El agente de IA asigna una etiqueta.
     * Lo registramos en un google sheets y lo marcamos como leido.
 * 📂 *[Ver flujo en carpeta /05-emails-classifier]*
 
+### 6. 📩 Gestionador de emails (AI + Google Workspace)
+**Objetivo:** Gestionarr los emails entrantes dependiendo del tipo que sean.
+* **Tecnologías:** n8n, Gmail Trigger, AI (api de Grog), Google Sheets, Slack.
+* **Flujo:**
+    * LLega un mail mediante el Gmail Trigger.
+    * El agente de IA asigna una etiqueta.
+    * Si es SPAM lo elimina
+    * Si es soporte, envia un mensaje a un canal de Stack
+    * Si es facturacion (archivo binario) lo guarda en un servidor
+    * Todos los mails se registran en un google sheets y los marcamos como leido.
+* **Calculo de ROI:** Este flujo integra el nuevo nodo de métricas de n8n para cuantificar el impacto de la automatización, lo cual hace que el tiempo ahorrado del flujo varie dependiendo de la rama que se ejecute, lo que da como resultado un calculo de ROI más acertado
+* 📂 *[Ver flujo en carpeta /06-emails-manager]*
 
 ---
 
