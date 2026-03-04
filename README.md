@@ -32,6 +32,18 @@ Este repositorio centraliza mis proyectos más recientes enfocados en la optimiz
         * Integración de Tool de Supabase Vector Store para recuperación de documentos (Retrieval) para el Agente de IA.
 * 📂 *[Ver flujos en carpeta /01-RAG-Supabase]*
 
+#### Capturas del Flujo de carga de documentos RAG (Backend)
+
+![rag-backeind-workflow-01](assets/rag-backend-workflow-01.jpg)
+![rag-backeind-workflow-01](assets/rag-backend-workflow-02.jpg)
+
+#### Captura del Flujo del chatbot RAG (Frontend)
+
+![rag-frontend-workflow](assets/rag-frontend-workflow.png)
+
+#### Captura del chatbot de telegram
+![rag-frontend-chatbot](assets/rag-frontend-chatbot.png)
+
 ### 2. 🧾 Automatización de Facturación (AFIP)
 **Objetivo:** Eliminar la carga manual de facturación y envío de comprobantes fiscales.
 * **Tecnologías:** n8n, AFIP SDK, JavaScript, HTML (para template).
@@ -40,6 +52,14 @@ Este repositorio centraliza mis proyectos más recientes enfocados en la optimiz
     * Generación dinámica de código QR y renderizado del PDF de la factura.
     * Envío automático por correo electrónico al cliente final.
 * 📂 *[Ver flujo en carpeta /02-Facturacion-AFIP]*
+
+#### Captura del Flujo de AFIP SDK
+
+![Workflow de Afip SDK](assets/afip-sdk-workflow.png)
+
+#### Factura generada a partir del HTML con QR
+
+![Factura generada a partir del HTML](assets/afip-sdk-html-factura.png)
 
 ### 3. 📅 Bot de Gestión de Eventos con Telegram + MCP
 **Objetivo:** Gestión avanzada de Google Calendar mediante IA multimodal.
@@ -60,6 +80,14 @@ Este repositorio centraliza mis proyectos más recientes enfocados en la optimiz
     * Registro de la información del cliente en Google Sheets (Base de datos).
     * Disparo automático de correos de confirmación personalizados.
 * 📂 *[Ver flujo en carpeta /04-Citas-gestion]*
+
+#### Captura del flujo de gestion de citas con cal
+
+![webhook citas con cal](assets/webhook-cal-workflow.png)
+
+#### Captura del mail eenviado cuando el usuario registra una cita
+
+![webhook citas con cal](assets/webhook-cal-email.png)
 
 ### 5. 📩 Clasificador de emails (AI + Google Workspace)
 **Objetivo:** Clasificar los emails entrantes con etiquetas.
