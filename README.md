@@ -72,6 +72,19 @@ Este repositorio centraliza mis proyectos más recientes enfocados en la optimiz
         * Implementación de servidor MCP para proveer contexto dinámico y herramientas de Google Calendar al agente de IA de manera estandarizada.
 * 📂 *[Ver flujos en carpeta /03-a-Telegram-AIBot]*
 
+#### Captura del chatbot de telegram (Client MCP)
+![rag-frontend-chatbot](assets/telegram-agendabot-workflow-client.png)
+
+#### Captura del chatbot de telegram (MCP Server)
+![rag-frontend-chatbot](assets/telegram-agendabot-workflow-mcp-server.png)
+
+#### Captura de la respuesta del chatbot en Telegram
+![rag-frontend-chatbot](assets/telegram-agendabot-response.png)
+
+#### Captura del evento en Calendar
+![rag-frontend-chatbot](assets/telegram-agendabot-calendar.png)
+
+
 ### 4. 📅 Gestión de Citas (Cal.com + Google Workspace)
 **Objetivo:** Sincronización automática de agenda y CRM básico.
 * **Tecnologías:** n8n, Cal.com Webhooks, Google Sheets, Gmail.
